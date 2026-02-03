@@ -1,4 +1,4 @@
-[!License](https://img.shields.io/badge/coverage-95%25-orange)
+[!License](https://img.shields.io/badge/License-GPLv325-orange)
 
 # Dungeon Raiders
 
