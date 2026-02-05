@@ -31,7 +31,6 @@ public class Dungeon_Raiders {
         SwingUtilities.invokeLater(() -> {
             new Game();
         });
-
     }
 
 }
@@ -64,7 +63,7 @@ class Game {
     boolean isInStore = false;
     boolean isInWeaponStore = false;
     boolean isInPotionStore = false;
-    boolean isInLvlUpAttributes = false;
+    boolean inAllocateTokens = false;
     boolean isInDungeon = false;
     boolean isInMenu = false;
     boolean inInventory = false;
@@ -73,26 +72,28 @@ class Game {
     boolean buyingPotion = false;
     boolean buyingWeapon = false;
     boolean isInBeastiary = false;
+    boolean inLevelUp = false;
 
-    Player player;
+    double physicalMultiplier;
+    double magicMultiplier;
+
+    Player player = new Player("Abu");
     Enemy enemy;
     Dungeon dungeon;
 
     ArrayList<Weapon> shopWeaponInventory = new ArrayList<>(Arrays.asList(new Weapon("World Ender", 10, 2), new Weapon("Steel Nail", 10, 2), new Weapon("Mage's Staff", 10, 2)));
     ArrayList<Potion> shopPotionInventory = new ArrayList<>(Arrays.asList(new Potion("Regeneration", 1, 5, "heal"), new Potion("Attack", 1, 5, "atkBuff"), new Potion("Defense", 1, 5, "defBuff")));
 
-    
-
     ArrayList<Enemy> enemies = new ArrayList<>(Arrays.asList(new Enemy("Ogre", 1, 10, 3, 2), new Enemy("Crocotta", 1, 10, 2, 3), new Enemy("Bicorn", 1, 15, 2, 2), new Enemy("Yale", 1, 10, 1, 3), new Enemy("Wyvern", 1, 20, 4, 4)));
     int enemyFloorPity = 0;
 
     public Game() {
         for (File file : uniFiles) {
-                if (file.isFile() && file.getName().endsWith(".bin")) {
-                    files.add(file);
-                    System.out.println(file.getName()+" added");
-                }
+            if (file.isFile() && file.getName().endsWith(".bin")) {
+                files.add(file);
+                System.out.println(file.getName() + " added");
             }
+        }
         new Thread(() -> {
             while (isRunning) {
                 startScreen();
@@ -100,29 +101,72 @@ class Game {
         }).start();
     }
 
-    public void createPlayer() {
-        System.out.print("What is your name: ");
-        String name = scanner.next();
-        System.out.println("What is your role: ");
-        textBox("1. Mage \n2. Knight");
+    public void startScreen() {
+        textBox("""
+                Welcome to Dungeon Raiders
+                1. New Game
+                2. Load Game
+                3. Exit Game""");
         System.out.print(">>>");
-        int role = scanner.nextInt();
+        int ans = scanner.nextInt();
         delay(800);
-        switch (role) {
+        switch (ans) {
             case 1 -> {
-                player = new Player(name, "mage");
-                System.out.println("Mage character created.");
+                newGame();
             }
             case 2 -> {
-                player = new Player(name, "knight");
-                System.out.println("Knight character created");
+                loadSave();
+            }
+            case 3 -> {
+                isRunning = false;
             }
             default -> {
-                System.out.println("Invalid role.");
+                System.out.println("Invalid Input.");
             }
         }
 
-        delay(800);
+    }
+
+    public void newGame() {
+        createPlayer();
+        isInMenu = true;
+        menu();
+    }
+
+    public void loadSave() {
+        if (files != null) {
+            System.out.println("Which save would you like to open: \n" + "=".repeat(60));
+            int count = 0;
+
+            for (File file : files) {//Prints out .bin files in game directory
+                if (file.isFile() && file.getName().endsWith(".bin")) {
+                    count++;
+                    System.out.println(count + ". " + file.getName());
+                }
+            }
+            count++;
+            System.out.println(count + ". <-- Back");
+
+            System.out.print("=".repeat(60) + "\n" + ">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+
+             if (ans > 0 && ans <= files.size()) {
+                System.out.println("You have opened " + files.get(ans - 1).getName());
+                player = loadPlayer(files.get(ans - 1).getName());
+                
+                System.out.println("Welcome back " + player.name + ". Here are your current stats:");
+                displayStats();
+                delay(800);
+
+                isInMenu = true;
+                menu();
+            }
+
+        } else {
+            System.out.println("Directory does not exist or is not a folder.");
+        }
+
     }
 
     public void createEnemy() {
@@ -132,20 +176,6 @@ class Game {
     public void createDungeon() {
         dungeon = new Dungeon();
         System.out.println("New dungeon created.");
-    }
-
-    public void showStats() {
-        textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]"
-                + "\nLevel: " + player.lvl
-                + "\nLvlUpTokens: " + player.lvlUpTokens
-                + "\nRole: " + player.role
-                + "\nATK: " + player.atk
-                + "\nDEF: " + player.def
-                + "\nKNO: " + player.kno
-                + "\nLUC: " + player.luc
-                + "\n" + "-".repeat(60)
-                + "\nCurrent Weapon: " + (player.currentWeapon != null ? player.currentWeapon.name : "fists")
-        );
     }
 
     public void showWeaponStats(Weapon weapon) {
@@ -167,33 +197,6 @@ class Game {
         System.out.println("=".repeat(60));
         System.out.println(text);
         System.out.println("=".repeat(60));
-    }
-
-    public void startScreen() {
-        textBox("""
-                Welcome to Dungeon Raiders
-                1. New Game
-                2. Load Game
-                3. Exit Game""");
-        System.out.print(">>>");
-        int ans = scanner.nextInt();
-        delay(800);
-        switch (ans) {
-            case 1 -> {
-                createPlayer();
-                isInMenu = true;
-                menu();
-            }
-            case 2 -> {
-                loadSave();
-            }
-            case 3 -> {
-                isRunning = false;
-            }
-            default -> {
-            }
-        }
-
     }
 
     public void menu() {
@@ -223,8 +226,8 @@ class Game {
                     checkInventory();
                 }
                 case 4 -> {
-                    isInLvlUpAttributes = true;
-                    lvlUpAttributes();
+                    inAllocateTokens = true;
+                    allocateTokens();
                 }
                 case 5 -> {
                     isInBeastiary = true;
@@ -235,47 +238,6 @@ class Game {
                     isInMenu = false;
                     isRunning = false;
                 }
-            }
-        }
-    }
-
-    public void lvlUpAttributes() {
-        if (player.lvlUpTokens <= 0) {
-            System.out.println("You have insufficient tokens to level up attributes.");
-        }
-
-        while (isInLvlUpAttributes && player.lvlUpTokens > 0) {
-            System.out.println("Which stat would you like to upgrade.");
-            textBox("""
-                    1. ATK
-                    2. DEF
-                    3. KNO
-                    4. LUC
-                    5. <--Back""");
-            System.out.println(">>>");
-            int ans = scanner.nextInt();
-            delay(800);
-            switch (ans) {
-                case 1 -> {
-                    player.atk++;
-                    System.out.println("Player attack increased.");
-                }
-                case 2 -> {
-                    player.def++;
-                    System.out.println("Player defense increased.");
-                }
-                case 3 -> {
-                    player.kno++;
-                    System.out.println("Player knowledge increased.");
-                }
-                case 4 -> {
-                    player.luc++;
-                    System.out.println("Player luck increased.");
-                }
-                case 5 -> {
-                    isInLvlUpAttributes = false;
-                }
-
             }
         }
     }
@@ -299,21 +261,21 @@ class Game {
                         }
                     }
                     count++;
-                    System.out.println(count+". Create new save");
+                    System.out.println(count + ". Create new save");
                     System.out.print(">>>");
                     int ans = scanner.nextInt();
                     delay(800);
-                    if(ans==count){
+                    if (ans == count) {
                         System.out.println("Type in new file save name.");
                         System.out.print(">>>");
                         String fileName = scanner.next();
-                        if(!fileName.endsWith(".bin")){
-                            fileName+=".bin";
+                        if (!fileName.endsWith(".bin")) {
+                            fileName += ".bin";
                         }
                         playerData.player = player;
-                        try(ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(fileName))){
+                        try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(fileName))) {
                             os.writeObject(playerData);
-                        }catch(IOException e){
+                        } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
@@ -322,7 +284,7 @@ class Game {
                         playerData.player = player;
                         try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(files.get(ans - 1).getName()))) {
                             os.writeObject(playerData);
-                            System.out.println("Data saved to " + files.get(ans-1).getName());
+                            System.out.println("Data saved to " + files.get(ans - 1).getName());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -500,7 +462,7 @@ class Game {
                     }
                 }
                 case 4 -> {
-                    showStats();
+                    displayStats();
                 }
                 case 5 -> {
                     inInventory = true;
@@ -789,21 +751,6 @@ class Game {
 
     }
 
-    public void levelUp() {
-        int currLevel = (int) Math.floor(player.expGauge / 50);
-        if (currLevel > player.lvl) {
-            player.lvl = currLevel;
-            System.out.println("You have leveled up.\nNew level: " + currLevel);
-            delay(800);
-            int tokens = (int) Math.floor(Math.random() * 5 + 1);
-            player.lvlUpTokens += tokens;
-            System.out.println("You have received " + tokens + " level up token+" + (tokens > 1 ? "s." : "."));
-        } else {
-            System.out.println((player.lvl * 50 + 50 - player.expGauge) + "exp left until next level up.");
-        }
-        delay(800);
-    }
-
     public void inBeastiary() {
         while (isInBeastiary) {
             if (!player.beastiary.isEmpty()) {
@@ -833,37 +780,6 @@ class Game {
         }
     }
 
-    public void loadSave() {
-        if (files != null) {
-            System.out.println("Which save would you like to open: \n" + "=".repeat(60));
-            int count = 0;
-            System.out.println("=".repeat(60));
-            for (File file : files) {
-                if (file.isFile() && file.getName().endsWith(".bin")) {
-                    count++;
-                    System.out.println(count + ". " + file.getName());
-                }
-            }
-            System.out.println("=".repeat(60));
-            System.out.print(">>>");
-            int ans = scanner.nextInt();
-            System.out.println(files.get(ans-1).getName());
-            if (ans > 0 && ans <= files.size()) {
-                System.out.println("You have opened " + files.get(ans - 1).getName());
-                player = loadPlayer(files.get(ans - 1).getName());
-            }
-
-            System.out.println("Welcome back " + player.name + ". Here are your current stats:");
-            showStats();
-            delay(800);
-            isInMenu = true;
-            menu();
-        } else {
-            System.out.println("Directory does not exist or is not a folder.");
-        }
-
-    }
-
     public void fightSequence() {
         System.out.println("You encountered an enemy.");
         isFighting = true;
@@ -878,7 +794,7 @@ class Game {
         while (isFighting) {
             textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10)
                     + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]"
-                    + "\nLevel: " + player.lvl + " ".repeat(19) + "Level: " + enemy.lvl
+                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl
                     + "\n" + "-".repeat(60)
                     + "\n1. Attack \n2. Use Potion \n3. Escape\n4. Display Stats \n5. Check Beastiary");
             System.out.print(">>>");
@@ -962,7 +878,7 @@ class Game {
 
                 }
                 case 4 -> {
-                    showStats();
+                    displayStats();
                     delay(800);
                 }
                 case 5 -> {
@@ -1074,23 +990,237 @@ class Game {
     public boolean escapeEnemy() {
         return Math.random() > 0.8 - (0.1 * player.luc);//30% base chance to escape enemy
     }
+
+    //---------------------------------------PLAYER BASED METHODS----------------------------------------------------------
+    public void createPlayer() {
+        System.out.print("What is your name: ");
+        String name = scanner.next();
+        System.out.println("What is your role: ");
+        textBox("1. Mage \n2. Gish \n3. Knight \n4. Barbarian");
+        System.out.print(">>>");
+        int role = scanner.nextInt();
+        delay(800);
+        switch (role) {
+            case 1 -> {
+                player = new Player(name);
+                player.role = new Role("mage");
+                System.out.println("Mage character created.");
+            }
+            case 2 -> {
+                player = new Player(name);
+                player.role = new Role("gish");
+                System.out.println("Gish character created.");
+            }
+            case 3 -> {
+                player = new Player(name);
+                player.role = new Role("knight");
+                System.out.println("Knight character created.");
+            }
+            case 4 -> {
+                player = new Player(name);
+                player.role = new Role("barbarian");
+                System.out.println("Barbarian character created.");
+            }
+            default -> {
+                System.out.println("Invalid role.");
+            }
+        }
+
+        delay(800);
+    }
+
+    //directly affected by the players stat level
+    //used to calculate increase in atk, int, vit, and luc after each level up
+    public static double setGainDecrease(int stat) {//could be atk, int, vit or luc
+        //f(x) = a . b ^ x;
+        double maxGain = 50.0;//a
+        double decayFactor = 0.95499258602144;//b
+
+        return maxGain * Math.pow(decayFactor, stat);
+    }
+
+    public static double statGainIncrease(int stat) {
+        double maxGain = 50.0;
+        double decayFactor = 0.95499258602144;
+
+        double increment = maxGain * Math.pow(decayFactor, stat);
+        return maxGain - increment;
+    }
+
+    public void allocateTokens() {
+        if (player.tokens <= 0) {
+            System.out.println("You have insufficient tokens to level up your attributes.");
+            inAllocateTokens = false;
+            return;
+        }
+
+        while (inAllocateTokens && player.tokens > 0) {
+            System.out.println("Which stat would you like to upgrade.\n" + "=".repeat(60) + "\nTokens: " + player.tokens);
+            delay(800);
+            textBox("""
+                    1. VIT
+                    2. STR
+                    3. INT
+                    4. LUC
+                    5. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    player.currentHealth += setGainDecrease(player.VIT);
+                    System.out.println("Player vitality has increased.");
+                    player.tokens--;
+                }
+                case 2 -> {
+                    switch (player.role.type.toLowerCase()) {
+                        case "mage" ->
+                            physicalMultiplier = 0.25;
+                        case "gish" ->
+                            physicalMultiplier = 0.50;
+                        case "knight" ->
+                            physicalMultiplier = 0.75;
+                        case "barbarian" ->
+                            physicalMultiplier = 1.0;
+                    }
+                    player.currentPhysicalAttack += (setGainDecrease(player.STR) * physicalMultiplier);
+                    System.out.println("Player attack has increased.");
+                    player.tokens--;
+                }
+                case 3 -> {
+                    switch (player.role.type.toLowerCase()) {
+                        case "mage" ->
+                            magicMultiplier = 1.0;
+                        case "gish" ->
+                            magicMultiplier = 0.75;
+                        case "knight" ->
+                            magicMultiplier = 0.50;
+                        case "barbarian" ->
+                            magicMultiplier = 0.25;
+                    }
+                    player.currentPhysicalAttack += (setGainDecrease(player.INT) * magicMultiplier);
+                    System.out.println("Player intelligence has increased.");
+                    player.tokens--;
+                }
+                case 4 -> {
+                    player.currentLuck += setGainDecrease(player.LUC);
+                    System.out.println("Player luck has increased.");
+                    player.tokens--;
+                }
+                case 5 -> {
+                    inAllocateTokens = false;
+                }
+
+            }
+        }
+    }
+
+    public void displayStats() {
+        textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]"
+                + "\nLevel: " + player.currentLevel
+                + "\nTokens: " + player.tokens
+                + "\nRole: " + player.role
+                + "\n" + "-".repeat(60)
+                + "\nVIT: " + player.VIT
+                + "\nSTR: " + player.STR
+                + "\nINT: " + player.INT
+                + "\nLUC: " + player.LUC
+                + "\n" + "-".repeat(60)
+                + "\nCurrent Weapon: " + player.currentWeapon.name
+        );
+    }
+
+    public void displayStatDetails() {
+        textBox("Base Health: " + player.currentHealth
+                + "\nBase Physical Attack: " + player.currentPhysicalAttack
+                + "\nBase Magical Attack: " + player.currentMagicalAttack
+                + "\nCurrent Weapon Physical Attack: " + player.currentWeapon.currentPhysicalAttack
+                + "\nCurrent Weapon Magical Attack: " + player.currentWeapon.currentMagicalAttack
+                + "\n" + "-".repeat(60)
+                + "\nTotal Physical Attack: " + player.totalPhysicalDamage()
+                + "\nTotal Magical Attack: " + player.totalMagicalDamage());
+    }
+
+    public void setStats() {
+        for (int i = 1; i <= player.currentLevel; i++) {
+            player.currentXp += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentXp);
+        }
+        for (int i = 1; i <= player.STR; i++) {
+            player.currentPhysicalAttack += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentPhysicalAttack);
+        }
+        for (int i = 1; i <= player.INT; i++) {
+            player.currentMagicalAttack += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentMagicalAttack);
+        }
+        for (int i = 1; i <= player.VIT; i++) {
+            player.currentHealth += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentHealth);
+        }
+        for (int i = 1; i <= player.LUC; i++) {
+            player.currentLuck += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentLuck);
+        }
+    }
+
+    public void levelUp() {
+        while (inLevelUp) {
+            int curr = 0;
+            for (int i = 1; i <= player.currentLevel + 1; i++) {
+                curr += statGainIncrease(i);
+            }
+            System.out.println(curr);
+
+            if (curr <= player.currentXp) {
+                player.currentLevel++;
+                System.out.println("You have leveled up.\nNew level: " + player.currentLevel);
+
+                //token allocation -- player gets between 1 and 5 tokens to use on stats after each level up
+                int tokens = (int) Math.floor(Math.random() * 5 + 1);
+                player.tokens += tokens;
+                System.out.println("You have received " + tokens + " level up token" + (tokens > 1 ? "s." : ".")/*This is purely for grammaticaly correctness*/);
+            } else {
+                System.out.println((curr - player.currentXp) + " xp left until next level up.");
+                inLevelUp = false;
+            }
+        }
+    }
 }
 
 class Player implements Serializable {
 
     String name;
-    String role;
-    Weapon currentWeapon;
+    //xp dictates player level
+    int level = 0;
+
+    //used in levelling up player stats
+    int tokens = 0;
+
+    Role role;
 
     ArrayList<Weapon> playerWeaponInventory = new ArrayList<>();
     ArrayList<Potion> playerPotionInventory = new ArrayList<>();
     ArrayList<BeastLog> beastiary = new ArrayList<>();
 
-    int lvl = 1;
+    int VIT = 1;
+    int STR = 1;
+    int INT = 1;
+    int LUC = 1;
+
+    int maxHealth = 0;
+    int currentHealth = 0;//hpGain()
+    int currentLevel = 0;
+    int currentXp = 0;
+    int currentPhysicalAttack = 0;//strGain()
+    int currentMagicalAttack = 0;//intGain()
+    int currentLuck = 0;//luckGain()
+
+    Weapon currentWeapon = new Weapon("Fists", 0, 1);
+
     int expGauge = 0;
-    int coins = 20;
-    int lvlUpTokens = 0;
     int hp = 10;
+    int coins = 20;
     int atk;
     int buffedAtk = 0;
     int def;
@@ -1098,41 +1228,35 @@ class Player implements Serializable {
     int kno;
     int luc;
 
-    public Player(String name, String role) {
+    public Player(String name) {
         this.name = name;
-        this.role = role;
-        Role r = new Role(role);
-        this.atk = r.atk;
-        this.def = r.def;
-        this.kno = r.kno;
-        this.luc = r.luc;
+    }
+
+    public double totalPhysicalDamage() {
+        return currentPhysicalAttack + currentWeapon.currentPhysicalAttack;
+    }
+
+    public double totalMagicalDamage() {
+        return currentMagicalAttack + currentWeapon.currentMagicalAttack;
     }
 }
 
 class Role {
 
-    int atk;
-    int def;
-    int kno;
-    int luc;
+    String type;
 
-    public Role(String role) {
-        switch (role.toLowerCase()) {
-            case "mage" -> {
-                this.atk = 1;
-                this.def = 1;
-                this.kno = 3;
-                this.luc = 2;
-            }
-            case "knight" -> {
-                this.atk = 3;
-                this.def = 2;
-                this.kno = 1;
-                this.luc = 1;
-            }
-            default ->
-                System.out.println("role is incompatible");
-        }
+    int VIT = 1;
+    int STR = 1;
+    int INT = 1;
+    int LUC = 1;
+
+    int atk = 1;
+    int def = 1;
+    int kno = 1;
+    int luc = 1;
+
+    public Role(String type) {
+        this.type = type;
     }
 }
 
@@ -1202,6 +1326,9 @@ class Weapon implements Serializable {
     int price;
     int dmg;
 
+    int currentPhysicalAttack;
+    int currentMagicalAttack;
+
     //the less durability an item has the less its market value would be
     public Weapon(String name, int price, int dmg) {
         this.name = name;
@@ -1219,7 +1346,7 @@ class BeastLog implements Serializable {
 
     Enemy enemy;
     String description;
-        String ogreDescription = "\"The hulking brutes of the wild\"\nOgres are muscular, human-like giants standing 9 to 10 feet tall and weighing over 600 pounds. They have hideous, disproportioned features, including large noses, tusks, warts, and often possess dull, earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers, often resorting to violent tantrums when frustrated.";
+    String ogreDescription = "\"The hulking brutes of the wild\"\nOgres are muscular, human-like giants standing 9 to 10 feet tall and weighing over 600 pounds. They have hideous, disproportioned features, including large noses, tusks, warts, and often possess dull, earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers, often resorting to violent tantrums when frustrated.";
     String crocottaDescription = "\"The Cackling Predators of the Badlands.\"\nCrocottas are lean, hyena-like monstrosities roughly the size of a large lion, with powerful forequarters, sloped backs, and long, bone-crushing jaws filled with jagged teeth. Their coarse fur ranges from dusty brown to ash-grey, often mottled to blend into rocky plains and scrublands. Most unsettling is their intelligence and cruel cunning—crocottas are known to mimic human voices and familiar sounds to lure prey into ambushes. They delight in panic and pursuit, hunting not just to feed, but to terrorize, often laughing with an eerie, echoing cackle as they close in on their victims.";
     String bicornDescription = "\"The Two-Horned Wardens of the Wilds.\"\nBicorns are massive, bull-like beasts with thick, corded muscle and a low, powerful stance built for unstoppable charges. They are distinguished by their pair of forward-curving horns, polished smooth from constant combat and territorial clashes. Their hides are dense and leathery, ranging from deep umber to soot-black, often scarred from battles with rivals and predators alike. Though generally solitary and highly territorial, bicorns possess an uncanny sense for intruders, reacting with sudden, explosive aggression when their domain is threatened. When provoked, a bicorn’s charge can shatter shields, uproot trees, and leave the ground trembling in its wake.";
     String yaleDescription = "\"The Shadow-Maned Hunters of the High Slopes.\"\nDescription: Yales are powerful, goat- or antelope-like beasts with compact, muscular bodies and dense coats suited for cold, mountainous terrain. Their most striking feature is a pair of large, swiveling horns capable of rotating independently—one can face forward while the other guards the rear, making ambush nearly impossible. Their fur ranges from pale stone-grey to deep charcoal, often darkening around the mane and shoulders. Yales are wary and aggressive by nature, relying on sudden bursts of speed and brutal horn strikes when threatened. Cunning and relentless, they are known to pursue intruders across cliffs and narrow ledges where few other creatures would dare to tread.";
@@ -1227,20 +1354,20 @@ class BeastLog implements Serializable {
 
     public BeastLog(Enemy enemy) {
         this.enemy = enemy;
-        switch(enemy.name.toLowerCase()){
-            case "ogre"->{
+        switch (enemy.name.toLowerCase()) {
+            case "ogre" -> {
                 this.description = ogreDescription;
             }
-            case "crocotta"->{
+            case "crocotta" -> {
                 this.description = crocottaDescription;
             }
-            case "bicorn"->{
+            case "bicorn" -> {
                 this.description = bicornDescription;
             }
-            case "yale" ->{
+            case "yale" -> {
                 this.description = yaleDescription;
             }
-            case "wyvern" ->{
+            case "wyvern" -> {
                 this.description = wyvernDescription;
             }
         }
