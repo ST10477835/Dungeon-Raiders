@@ -49,6 +49,7 @@ class Game {
 
     Scanner scanner = new Scanner(System.in);
     SavePlayerData playerData = new SavePlayerData();
+    SaveEnemyData enemyData = new SaveEnemyData();
     String playerFileName = "game_save.bin";
 
     String folderPath = "C:\\Users\\abule\\OneDrive\\Documents\\NetBeansProjects\\Dungeon_Raiders";
@@ -84,21 +85,27 @@ class Game {
     ArrayList<Weapon> shopWeaponInventory = new ArrayList<>(Arrays.asList(new Weapon("World Ender", 10, 2), new Weapon("Steel Nail", 10, 2), new Weapon("Mage's Staff", 10, 2)));
     ArrayList<Potion> shopPotionInventory = new ArrayList<>(Arrays.asList(new Potion("Regeneration", 1, 5, "heal"), new Potion("Attack", 1, 5, "atkBuff"), new Potion("Defense", 1, 5, "defBuff")));
 
-    ArrayList<Enemy> enemies = new ArrayList<>(Arrays.asList(new Enemy("Ogre", 1, 10, 3, 2), new Enemy("Crocotta", 1, 10, 2, 3), new Enemy("Bicorn", 1, 15, 2, 2), new Enemy("Yale", 1, 10, 1, 3), new Enemy("Wyvern", 1, 20, 4, 4)));
+    ArrayList<Enemy> enemies = loadEnemyData();
     int enemyFloorPity = 0;
 
     public Game() {
+
         for (File file : uniFiles) {
             if (file.isFile() && file.getName().endsWith(".bin")) {
                 files.add(file);
                 System.out.println(file.getName() + " added");
             }
         }
-        new Thread(() -> {
+        
+        for(Enemy enemy :enemies){
+            System.out.println(enemy.name);
+        }
+
+        /*new Thread(() -> {
             while (isRunning) {
                 startScreen();
             }
-        }).start();
+        }).start();*/
     }
 
     public void startScreen() {
@@ -151,10 +158,10 @@ class Game {
             int ans = scanner.nextInt();
             delay(800);
 
-             if (ans > 0 && ans <= files.size()) {
+            if (ans > 0 && ans <= files.size()) {
                 System.out.println("You have opened " + files.get(ans - 1).getName());
                 player = loadPlayer(files.get(ans - 1).getName());
-                
+
                 System.out.println("Welcome back " + player.name + ". Here are your current stats:");
                 displayStats();
                 delay(800);
@@ -991,6 +998,29 @@ class Game {
         return Math.random() > 0.8 - (0.1 * player.luc);//30% base chance to escape enemy
     }
 
+    //---------------------------------------SHOP BASED METHODS-----------------------------------------------------------
+    //---------------------------------------ENEMY BASED METHODS-----------------------------------------------------------
+    public void fetchEnemyList() {
+        try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("enemies.bin"))) {
+            os.writeObject(enemyData);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public ArrayList<Enemy> loadEnemyData() {
+        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream("enemies.bin"))) {
+            SaveEnemyData data = (SaveEnemyData) is.readObject();
+            System.out.println("Enemy List found.");
+            return data.enemies;
+
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Enemy List not found.");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     //---------------------------------------PLAYER BASED METHODS----------------------------------------------------------
     public void createPlayer() {
         System.out.print("What is your name: ");
@@ -1263,12 +1293,13 @@ class Role {
 class Enemy implements Serializable {
 
     String name;
+    String description;
     int lvl;
     int hp;
     int atk;
     int def;
 
-    public Enemy(String name, int lvl, int hp, int atk, int def) {
+    public Enemy(String name, String description, int lvl, int hp, int atk, int def) {
         this.name = name;
         this.lvl = lvl;
         this.hp = hp;
@@ -1342,33 +1373,80 @@ class SavePlayerData implements Serializable {
     Player player;
 }
 
+class SaveEnemyData implements Serializable {
+
+    ArrayList<Enemy> enemies = new ArrayList<>(Arrays.asList(
+            new Enemy(
+                    "Ogre",
+                    "\"The hulking brutes of the wild.\"\n"
+                    + "Ogres are muscular, human-like giants standing 9 to 10 feet tall and weighing over 600 pounds. "
+                    + "They have hideous, disproportioned features, including large noses, tusks, warts, and often possess dull, "
+                    + "earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers, often resorting to violent "
+                    + "tantrums when frustrated.",
+                    1, 10, 3, 2
+            ),
+            new Enemy(
+                    "Crocotta",
+                    "\"The Cackling Predators of the Badlands.\"\n"
+                    + "Crocottas are lean, hyena-like monstrosities roughly the size of a large lion, with powerful forequarters, "
+                    + "sloped backs, and long, bone-crushing jaws filled with jagged teeth. Their coarse fur ranges from dusty brown "
+                    + "to ash-grey, often mottled to blend into rocky plains and scrublands. Most unsettling is their intelligence "
+                    + "and cruel cunning—crocottas are known to mimic human voices and familiar sounds to lure prey into ambushes. "
+                    + "They delight in panic and pursuit, hunting not just to feed, but to terrorize.",
+                    1, 10, 2, 3
+            ),
+            new Enemy(
+                    "Bicorn",
+                    "\"The Two-Horned Wardens of the Wilds.\"\n"
+                    + "Bicorns are massive, bull-like beasts with thick, corded muscle and a low, powerful stance built for "
+                    + "unstoppable charges. They are distinguished by their pair of forward-curving horns, polished smooth from "
+                    + "constant combat and territorial clashes. Their hides are dense and leathery, often scarred from battles. "
+                    + "When provoked, a bicorn’s charge can shatter shields and uproot trees.",
+                    1, 15, 2, 2
+            ),
+            new Enemy(
+                    "Yale",
+                    "\"The Shadow-Maned Hunters of the High Slopes.\"\n"
+                    + "Yales are powerful, goat- or antelope-like beasts with compact, muscular bodies and dense coats suited for "
+                    + "cold, mountainous terrain. Their most striking feature is a pair of large, swiveling horns capable of rotating "
+                    + "independently, making ambush nearly impossible. Cunning and relentless, they pursue intruders across cliffs "
+                    + "and narrow ledges.",
+                    1, 10, 1, 3
+            ),
+            new Enemy(
+                    "Wyvern",
+                    "\"The Venom-Winged Terrors of the Sky.\"\n"
+                    + "Wyverns are ferocious, two-legged drakes with vast, leathery wings that double as forelimbs. Their lean but "
+                    + "powerful bodies are built for speed and aerial dominance, with long, barbed tails often ending in a venomous "
+                    + "stinger. Though lacking the cunning of true dragons, their raw aggression makes them a nightmare for travelers.",
+                    1, 20, 4, 4
+            )
+    ));
+
+}
+
 class BeastLog implements Serializable {
 
     Enemy enemy;
     String description;
-    String ogreDescription = "\"The hulking brutes of the wild\"\nOgres are muscular, human-like giants standing 9 to 10 feet tall and weighing over 600 pounds. They have hideous, disproportioned features, including large noses, tusks, warts, and often possess dull, earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers, often resorting to violent tantrums when frustrated.";
-    String crocottaDescription = "\"The Cackling Predators of the Badlands.\"\nCrocottas are lean, hyena-like monstrosities roughly the size of a large lion, with powerful forequarters, sloped backs, and long, bone-crushing jaws filled with jagged teeth. Their coarse fur ranges from dusty brown to ash-grey, often mottled to blend into rocky plains and scrublands. Most unsettling is their intelligence and cruel cunning—crocottas are known to mimic human voices and familiar sounds to lure prey into ambushes. They delight in panic and pursuit, hunting not just to feed, but to terrorize, often laughing with an eerie, echoing cackle as they close in on their victims.";
-    String bicornDescription = "\"The Two-Horned Wardens of the Wilds.\"\nBicorns are massive, bull-like beasts with thick, corded muscle and a low, powerful stance built for unstoppable charges. They are distinguished by their pair of forward-curving horns, polished smooth from constant combat and territorial clashes. Their hides are dense and leathery, ranging from deep umber to soot-black, often scarred from battles with rivals and predators alike. Though generally solitary and highly territorial, bicorns possess an uncanny sense for intruders, reacting with sudden, explosive aggression when their domain is threatened. When provoked, a bicorn’s charge can shatter shields, uproot trees, and leave the ground trembling in its wake.";
-    String yaleDescription = "\"The Shadow-Maned Hunters of the High Slopes.\"\nDescription: Yales are powerful, goat- or antelope-like beasts with compact, muscular bodies and dense coats suited for cold, mountainous terrain. Their most striking feature is a pair of large, swiveling horns capable of rotating independently—one can face forward while the other guards the rear, making ambush nearly impossible. Their fur ranges from pale stone-grey to deep charcoal, often darkening around the mane and shoulders. Yales are wary and aggressive by nature, relying on sudden bursts of speed and brutal horn strikes when threatened. Cunning and relentless, they are known to pursue intruders across cliffs and narrow ledges where few other creatures would dare to tread.";
-    String wyvernDescription = "\"The Venom-Winged Terrors of the Sky.\"\nWyverns are ferocious, two-legged drakes with vast, leathery wings that double as forelimbs, giving them a hunched, predatory silhouette in flight. Their bodies are lean but powerful, built for speed and aerial dominance, with long, barbed tails often ending in a venomous stinger. Scales range from dark greens and browns to ash-grey or rusted red, helping them blend into cliffs and stormy skies. Wyverns are brutally territorial and driven by instinct rather than intellect, attacking with shrieking dives and hit-and-run strikes. Though lacking the cunning of true dragons, their raw aggression and poisonous sting make them a nightmare for travelers beneath open skies.";
 
     public BeastLog(Enemy enemy) {
         this.enemy = enemy;
         switch (enemy.name.toLowerCase()) {
             case "ogre" -> {
-                this.description = ogreDescription;
+                this.description = "";
             }
             case "crocotta" -> {
-                this.description = crocottaDescription;
+                this.description = "";
             }
             case "bicorn" -> {
-                this.description = bicornDescription;
+                this.description = "";
             }
             case "yale" -> {
-                this.description = yaleDescription;
+                this.description = "";
             }
             case "wyvern" -> {
-                this.description = wyvernDescription;
+                this.description = "";
             }
         }
     }

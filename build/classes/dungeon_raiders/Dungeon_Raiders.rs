@@ -13,6 +13,7 @@ dungeon_raiders.Game
 Dungeon_Raiders$Player
 dungeon_raiders.Player
 dungeon_raiders.Potion
+dungeon_raiders.SaveEnemyData
 dungeon_raiders.Dungeon
 dungeon_raiders.Enemy
 dungeon_raiders.SavePlayerData
