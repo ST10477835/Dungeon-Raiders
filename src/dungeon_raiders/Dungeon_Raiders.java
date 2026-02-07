@@ -97,6 +97,7 @@ class Game {
             }
         }
         
+        System.out.println("works");
         for(Enemy enemy :enemies){
             System.out.println(enemy.name);
         }

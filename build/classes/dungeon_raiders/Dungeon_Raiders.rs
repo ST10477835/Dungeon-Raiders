@@ -10,7 +10,10 @@ dungeon_raiders.Role
 Dungeon_Raiders$Weapon
 dungeon_raiders.Dungeon_Raiders
 dungeon_raiders.Game
+Dungeon_Raiders$SaveEnemyData
+Dungeon_Raiders$SavePlayerData
 Dungeon_Raiders$Player
+Dungeon_Raiders$BeastLog
 dungeon_raiders.Player
 dungeon_raiders.Potion
 dungeon_raiders.SaveEnemyData
