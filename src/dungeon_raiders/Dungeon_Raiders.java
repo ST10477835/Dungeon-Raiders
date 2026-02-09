@@ -505,6 +505,7 @@ class Game {
                 System.out.println("You currently have nothing to sell.");
                 inSellPotion = false;
             }
+            System.out.println("hello");
             delay(800);
         }
     }
