@@ -61,17 +61,29 @@ class Game {
     boolean canEscape = true;
     boolean isFighting = false;
     boolean canMoveNextFloor = false;
-    boolean inShop = false;
-    boolean isInWeaponStore = false;
-    boolean isInPotionStore = false;
-    boolean inAllocateTokens = false;
-    boolean isInDungeon = false;
+
     boolean inMenu = false;
+
+    //shop booleans
+    boolean inShop = false;
+    boolean inWeaponSection = false;
+    boolean inPotionSection = false;
+    boolean inBuyWeapon = false;
+    boolean inBuyPotion = false;
+    boolean inSellWeapon = false;
+    boolean inSellPotion = false;
+
+    //dungeon booleans
+    boolean inDungeon = false;
+    boolean inDungeonChecker = false;
+    boolean inEnemyEncounter = false;
+
+    boolean inAllocateTokens = false;
+
     boolean inPlayerInventory = false;
     boolean inPlayerWeaponInventory = false;
     boolean inPlayerPotionInventory = false;
     boolean buyingPotion = false;
-    boolean buyingWeapon = false;
     boolean isInBeastiary = false;
     boolean inLevelUp = false;
 
@@ -183,11 +195,6 @@ class Game {
         enemy = enemies.get((int) Math.floor(Math.random() * enemies.size()));
     }
 
-    public void createDungeon() {
-        dungeon = new Dungeon();
-        System.out.println("New dungeon created.");
-    }
-
     public void showWeaponStats(Weapon weapon) {
         textBox("Name: " + weapon.name
                 + "\nDurability: " + weapon.durability
@@ -226,10 +233,10 @@ class Game {
                     shop();
                 }
                 case 2 -> {
-                    isInDungeon = true;
-                    dungeonChoices();
+                    inDungeon = true;
+                    dungeon();
                 }
-                case 3->{
+                case 3 -> {
                     inPlayerOptions = true;
                     playerOptions();
                 }
@@ -238,13 +245,673 @@ class Game {
                     inMenu = false;
                     isRunning = false;
                 }
-                default ->{
+                default -> {
                     System.out.println("Invalid Input.");
                 }
             }
         }
     }
 
+    //-------------------------------------------SHOP OPTIONS-------------------------------------------------------
+    public void shop() {
+        while (inShop) {
+            System.out.println("What would you like to purchase?");
+            textBox("""
+                    1. Weapons
+                    2. Potions
+                    3. <--Back
+                    """);
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    inWeaponSection = true;
+                    weaponSection();
+                }
+                case 2 -> {
+                    inPotionSection = true;
+                    potionSection();
+                }
+                case 3 -> {
+                    System.out.println("Leaving Store...");
+                    inShop = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+
+        }
+    }
+
+    public void weaponSection() {
+        while (inWeaponSection) {
+            textBox("coins: " + player.coins + "\n" + "-".repeat(60) + "\n" + """
+                1. Buy Weapon
+                2. Sell Weapon
+                3. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    inBuyWeapon = true;
+                    buyWeapon();
+                }
+                case 2 -> {
+                    inSellWeapon = true;
+                    sellWeapon();
+                }
+                case 3 -> {
+                    inWeaponSection = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public void potionSection() {
+        while (inPotionSection) {
+            textBox("coins: " + player.coins + "\n" + "-".repeat(60) + "\n" + """
+                1. Buy Potion
+                2. Sell Potion
+                3. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    inBuyPotion = true;
+                    buyPotion();
+                }
+                case 2 -> {
+                    inSellPotion = true;
+                    sellPotion();
+                }
+                case 3 -> {
+                    inPotionSection = false;
+                }
+                default -> {
+
+                }
+            }
+        }
+    }
+
+    public void buyWeapon() {
+        while (inBuyWeapon) {
+            int count = 0;
+            textBox("Which weapon would you like to checkout?\n" + "=".repeat(60));
+            for (dungeon_raiders.Weapon weapon : shopWeaponInventory) {
+                count++;
+                System.out.println(count + ". " + weapon.name);
+            }
+
+            count++;
+            System.out.print("\n" + "=".repeat(60) + "\n" + count + ". <--Back\n>>>");
+            int ans = scanner.nextInt();
+            delay(800);
+
+            Weapon weapon = shopWeaponInventory.get(ans - 1);
+
+            if (ans >= 0 && ans < shopWeaponInventory.size()) {
+                showWeaponStats(weapon);
+                System.out.println("""
+                                   1. Purchase Weapon
+                                   --Press Enter to Continue--""");
+                System.out.print(">>>");
+                ans = scanner.nextInt();
+                delay(800);
+
+                if (ans == 1) {
+                    if (weapon.price <= player.coins) {
+                        player.coins -= weapon.price;
+                        //weapon cost coins removed from player account
+
+                        player.playerWeaponInventory.add(weapon);
+                        //weapon added to inventory
+
+                        shopWeaponInventory.remove(weapon);
+                        //weapon removed from inventory
+
+                        System.out.println("You have purchased: " + weapon.name + "\n-" + weapon.price + " coins");
+
+                        autoEquipWeapon();
+                        //if player does not have weapon equipped after purchase the next weapon purchased is automatically equiped
+                    } else {
+                        System.out.println("Insufficient funds.");
+                    }
+                }
+            } else if (ans == count) {
+                inBuyWeapon = false;
+            } else {
+                System.out.println("Invalid Input.");
+            }
+        }
+
+    }
+
+    public void buyPotion() {
+        while (inBuyPotion) {
+            int count = 0;
+            textBox("Which potion would you like to purchase?");
+            for (Potion potion : shopPotionInventory) {
+                count++;
+                System.out.println(count + ". " + potion.name);
+            }
+            count++;
+            System.out.print("\n" + count + ". <--Back\n>>>");
+            int ans = scanner.nextInt();
+            delay(800);
+
+            Potion potion = shopPotionInventory.get(ans - 1);
+
+            if (ans >= 0 && ans < shopPotionInventory.size()) {
+                if (potion.price <= player.coins) {
+                    player.coins -= potion.price;
+                    // potion price coins deducted from player account
+
+                    player.playerPotionInventory.add(potion);
+                    //potion added to player inventory
+
+                    shopPotionInventory.remove(potion);
+                    //potion removed from the shops inventory
+
+                    System.out.println("You have purchased: " + potion.name + "\n-" + potion.price + " coins");
+                } else {
+                    System.out.println("You have insufficient funds.");
+                }
+            } else if (ans == count) {
+                inBuyPotion = false;
+            }
+            delay(800);
+
+        }
+    }
+
+    public void sellWeapon() {
+        while (inSellWeapon) {
+            if (!player.playerWeaponInventory.isEmpty()) {
+                int count = 0;
+                System.out.println("Which weapon would you like to sell?\n" + "=".repeat(60));
+                for (dungeon_raiders.Weapon weapon : player.playerWeaponInventory) {
+                    count++;
+                    System.out.println(count + ". " + weapon.name);
+                }
+
+                count++;
+                System.out.print("\n" + count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+
+                Weapon weapon = player.playerWeaponInventory.get(ans - 1);
+
+                if (ans <= player.playerWeaponInventory.size() && ans > 0) {
+                    player.coins += weapon.price;
+                    // player gain weapon price amount of coins
+
+                    player.playerWeaponInventory.remove(weapon);
+                    //weapon removed from player inventory
+
+                    System.out.println(weapon.name + " was sold");
+                } else if (ans == count) {
+                    inSellWeapon = false;
+                } else {
+                    System.out.println("Invalid input.");
+                }
+            } else {
+                System.out.println("You currently have nothing to sell.");
+                inSellWeapon = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void sellPotion() {
+        while (inSellPotion) {
+            if (!player.playerPotionInventory.isEmpty()) {
+                int count = 0;
+                System.out.println("Which potion would you like to sell?\n" + "=".repeat(60));
+
+                for (Potion potion : player.playerPotionInventory) {
+                    count++;
+                    System.out.println(count + ". " + potion.name);
+                }
+
+                count++;
+                System.out.print("\n" + count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+
+                Potion potion = player.playerPotionInventory.get(ans - 1);
+
+                if (ans <= player.playerPotionInventory.size() && ans > 0) {
+                    player.coins += potion.price;
+                    //player gain potion price number of coins
+
+                    player.playerPotionInventory.remove(potion);
+                    //potion removed from player inventory
+
+                    System.out.println(potion.name + " was sold");
+                } else if (ans == count) {
+                    inSellWeapon = false;
+                } else {
+                    System.out.println("Invalid input.");
+                }
+            } else {
+                System.out.println("You currently have nothing to sell.");
+                inSellPotion = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void autoEquipWeapon() {
+        if (player.currentWeapon == null) {
+            player.currentWeapon = player.playerWeaponInventory.get(0);
+            player.playerWeaponInventory.remove(0);
+            System.out.println(player.currentWeapon.name + " automatically equiped.");
+        }
+    }
+
+    //-------------------------------------------DUNGEON OPTIONS----------------------------------------------------
+    public void dungeon() {
+        inDungeonChecker = true;//if dungeon is already exist, user is prompted to either enter a new dungeon or continue in the old one.
+        dungeonChecker();
+
+        while (inDungeon) {
+            textBox("""
+                    1. Explore Floor 
+                    2. Move to previous Floor 
+                    3. Move to next floor 
+                    4. Display Stats 
+                    5. Check Inventory 
+                    6. Check Beastiary 
+                    7. Leave Dungeon""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+
+            switch (ans) {
+                case 1 -> {
+                    exploreFloor();
+                }
+                case 2 -> {
+                    if (dungeon.currentFloor > 1) {
+                        dungeon.currentFloor--;
+                        System.out.println("Moving to previous floor...");
+                    } else {
+                        System.out.println("You are unable to move to a previous floor.");
+                    }
+                }
+                case 3 -> {
+                    if (canMoveNextFloor) {
+                        dungeon.currentFloor++;
+                        System.out.println("Moving to next floor...");
+                        canMoveNextFloor = false;
+                    } else {
+                        System.out.println("You are unable to move to the next floor.");
+                    }
+                }
+                case 4 -> {
+                    displayStats();
+                }
+                case 5 -> {
+                    inPlayerInventory = true;
+                    playerInventory();
+                }
+                case 6 -> {
+                    isInBeastiary = true;
+                    inBeastiary();
+                }
+                case 7 -> {
+                    inDungeon = false;
+                    System.out.println("Leaving Dungeon");
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+            delay(800);
+        }
+    }
+
+    public double luckBonus(double luck) {
+        return Math.log(luck + 1) * 0.08;
+    }
+
+    public void exploreFloor() {
+        //every explore floor you could either find stairs to next floor, find monster, or come across loot with the chance of that being a mimic
+        System.out.println("You are currently on floor " + dungeon.currentFloor + ".");
+
+        double rng = Math.random();
+        if (rng < 0.10 + luckBonus(player.currentLuck)) {//finding loot
+            inEnemyEncounter = true;
+            enemyEncounter();
+        } else if (rng < 0.25) {//25% chance of finding stairs in every room you enter
+
+        } else if (rng < 0.30) {//30% chance of encountering an enemy
+
+        } else {//Nothing happens
+            System.out.println("The room you entered is empty.");
+        }
+
+        if (Math.random() > 0.5) {//50/50 odds for either trying for enemy encounter or finding next floor stairs
+            if (encounterEnemy() || enemyFloorPity == 3) {
+
+                fightSequence();
+                enemyFloorPity = 0;
+            } else {
+                enemyFloorPity++;
+            }
+        } else {
+            if ((findFloorStairs() || enemyFloorPity == 3) && !canMoveNextFloor) {
+                System.out.println("Would you like to move to the next floor? (y/n)");
+                canMoveNextFloor = true;
+                System.out.print(">>>");
+                String ans = scanner.next();
+                delay(800);
+                switch (ans) {
+                    case "y" -> {
+                        dungeon.currentFloor++;
+                        if (dungeon.currentFloor == dungeon.floors) {
+                            dungeon.conquered = true;
+                        }
+                        System.out.println("Moved to floor " + dungeon.currentFloor + ".");
+                    }
+                    case "n" -> {
+                        dungeon();
+                    }
+                }
+                enemyFloorPity = 0;// reset floor finding pity
+            } else {
+                enemyFloorPity++;
+            }
+        }
+
+    }
+
+    public void enemyEncounter() {
+        while (inEnemyEncounter) {
+            createEnemy();
+            System.out.println("You have encountered an enemy.");
+
+            updateBeastiary(new BeastLog(enemy));
+
+            textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10)
+                    + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]"
+                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl
+                    + "\n" + "-".repeat(60));
+            textBox("""
+                    1. Attack 
+                    2. Use Potion 
+                    3. Escape
+                    4. Display Stats 
+                    5. Check Beastiary""");
+
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            switch (ans) {
+                case 1 -> {
+
+                }
+                case 2 -> {
+
+                }
+                case 3 -> {
+
+                }
+                case 4 -> {
+
+                }
+                case 5 -> {
+
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+
+            delay(800);
+
+        }
+    }
+
+    public double defenseMultiplier(double def) {
+        double reduction = Math.log(def + 1) * 0.08;
+        return Math.max(0.2, 1 - reduction);
+    }
+
+    public void attackEnemy() {
+        double DMG = player.totalPhysicalDamage() + player.totalMagicalDamage() - defenseMultiplier(enemy.def);
+        
+        
+
+        int damage = (player.role.equals("mage") ? player.kno + player.buffedAtk : player.atk + player.buffedAtk) + (player.currentWeapon != null ? player.currentWeapon.dmg : 0) - (int) Math.floor(Math.random() * enemy.def + 1);
+        if (hitEvasion("hit")) {
+            System.out.println("You have attacked the enemy. -" + damage + "hp");
+            enemy.hp -= damage;
+            if (Math.random() < 0.4 - (0.1 * player.luc) && player.currentWeapon != null) {
+                player.currentWeapon.durability--;
+                System.out.println("-1 durability");
+                delay(800);
+            }
+        } else {
+            System.out.println("You have missed your attack.");
+        }
+        if (player.currentWeapon != null) {
+            player.currentWeapon.price = (int) Math.floor(player.currentWeapon.durability / 20);
+        }
+    }
+
+    public void updateBeastiary(BeastLog beastLog) {
+        if (!player.beastiary.contains(beastLog)) {
+            player.beastiary.add(beastLog);
+            System.out.println("New Beast Log Made.");
+            delay(800);
+        }
+    }
+
+    public void fightSequence() {
+        System.out.println("You encountered an enemy.");
+        isFighting = true;
+        createEnemy();
+
+        if (!player.beastiary.contains(new BeastLog(enemy))) {
+            player.beastiary.add(new BeastLog(enemy));
+            System.out.println("New Beastiary Log made.");
+            delay(800);
+        }
+
+        while (isFighting) {
+            textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10)
+                    + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]"
+                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl
+                    + "\n" + "-".repeat(60)
+                    + "\n1. Attack \n2. Use Potion \n3. Escape\n4. Display Stats \n5. Check Beastiary");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            switch (ans) {
+                case 1 -> {//attack sequence
+                    attackEnemy();
+                    if (enemy.hp <= 0) {
+                        System.out.println("You have successfully defeated the enemy.");
+                        enemyDrops();
+                        levelUp();
+                        isFighting = false;
+                    }
+                    delay(800);
+
+                    if (isFighting) {
+                        enemyAttacks();
+                    }
+
+                    if (player.hp <= 0 && isFighting) {
+                        System.out.println("You have died to " + enemy.name);
+                        System.exit(0);
+                    }
+                    delay(800);
+                }
+                case 2 -> {
+                    if (!player.playerPotionInventory.isEmpty()) {
+                        System.out.println("What potion would you like to use?\n" + "=".repeat(60));
+                        int count = 0;
+                        for (Potion potion : player.playerPotionInventory) {
+                            count++;
+                            System.out.println(count + ". " + potion.name + ", lvl: " + potion.level);
+                        }
+                        System.out.println("=".repeat(60));
+                        System.out.print(">>>");
+                        ans = scanner.nextInt();
+                        if (ans <= player.playerPotionInventory.size() && ans > 0 && !player.playerPotionInventory.isEmpty()) {
+                            Potion potion = player.playerPotionInventory.get(ans - 1);
+                            usePotion(ans);
+                            switch (potion.effect) {
+                                case "heal" -> {
+                                    player.hp += potion.effect();
+                                }
+                                case "atkBuff" -> {
+                                    player.buffedAtk += potion.effect();
+                                }
+                                case "defBuff" -> {
+                                    player.buffedDef += potion.effect();
+                                }
+                            }
+                            delay(800);
+                        }
+
+                        if (isFighting) {
+                            enemyAttacks();
+                        }
+
+                        if (player.hp <= 0 && isFighting) {
+                            System.out.println("You have died to " + enemy.name);
+                            System.exit(0);
+                        }
+                        delay(800);
+                    } else {
+                        System.out.println("=".repeat(60) + "\n*No potions in inventory.");
+                        delay(800);
+                    }
+                }
+                case 3 -> {
+                    if (canEscape) {
+                        if (escapeEnemy()) {
+                            System.out.println("You have successfully escaped from the enemy.");
+                            isFighting = false;
+                        } else {
+                            System.out.println("You have failed to escape.");
+                            canEscape = false;
+                        }
+                    } else {
+                        System.out.println("You can no longer escape!");
+                    }
+                    delay(800);
+
+                }
+                case 4 -> {
+                    displayStats();
+                    delay(800);
+                }
+                case 5 -> {
+                    isInBeastiary = true;
+                    inBeastiary();
+                }
+                default -> {
+                }
+            }
+        }
+
+        player.buffedAtk = 0;
+        player.buffedDef = 0;
+        canEscape = true; //canEscape reset after entire encounter
+        enemy = null; //enemy reset
+    }
+
+    public void moveToNextFloor() {
+
+    }
+
+    public void moveToPreviousFloor() {
+
+    }
+
+    public void displayStats() {
+        textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]"
+                + "\nLevel: " + player.currentLevel
+                + "\nTokens: " + player.tokens
+                + "\nRole: " + player.role
+                + "\n" + "-".repeat(60)
+                + "\nVIT: " + player.VIT
+                + "\nSTR: " + player.STR
+                + "\nINT: " + player.INT
+                + "\nLUC: " + player.LUC
+                + "\n" + "-".repeat(60)
+                + "\nCurrent Weapon: " + player.currentWeapon.name
+        );
+    }
+
+    public void inBeastiary() {
+        while (isInBeastiary) {
+            if (!player.beastiary.isEmpty()) {
+                System.out.println("Which enemy would you like to checkout.\n" + "=".repeat(60));
+                int count = 0;
+                for (BeastLog beastLog : player.beastiary) {
+                    count++;
+                    System.out.println(count + ". " + beastLog.enemy.name);
+                }
+                System.out.print("=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                if (ans > 0 && ans <= player.beastiary.size()) {
+                    Enemy beast = player.beastiary.get(ans - 1).enemy;
+                    String description = player.beastiary.get(ans - 1).description;
+                    textBox("name: " + beast.name
+                            + "\ndescription: " + description);
+                }
+                System.out.println("=".repeat(60));
+                System.out.println("1. <--Back");
+                System.out.print(">>>");
+                int back = scanner.nextInt();
+            } else {
+                System.out.println("Beastiary is currently empty.");
+                isInBeastiary = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void dungeonChecker() {
+        while (inDungeonChecker) {
+            if (dungeon != null) {
+                System.out.println("Would you like to carry on from last time? (y/n)");
+                String ans = scanner.next();
+                delay(800);
+                switch (ans) {
+                    case "y" -> {
+                        System.out.println("Continuing from last time.");
+                        inDungeonChecker = false;
+                    }
+                    case "n" -> {
+                        createDungeon();
+                        inDungeonChecker = false;
+                    }
+                    default ->
+                        System.out.println("Invalid Input.");
+                }
+            } else {
+                createDungeon();
+            }
+        }
+    }
+
+    public void createDungeon() {
+        dungeon = new Dungeon();
+        System.out.println("New dungeon created.");
+    }
+
+    //-------------------------------------------PLAYER OPTIONS------------------------------------------------------
     public void playerOptions() {
         while (inPlayerOptions) {
             System.out.println("What would you like to do?");
@@ -390,7 +1057,7 @@ class Game {
             delay(800);
         }
     }
-    
+
     public void allocateTokens() {
         if (player.tokens <= 0) {
             System.out.println("You have insufficient tokens to level up your attributes.");
@@ -470,6 +1137,7 @@ class Game {
                 }
                 System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
                 int ans = scanner.nextInt();
+                delay(800);
                 if (ans > 0 && ans <= player.beastiary.size()) {
                     Enemy beast = player.beastiary.get(ans - 1).enemy;
                     textBox("name: " + beast.name
@@ -559,476 +1227,6 @@ class Game {
         }
     }
 
-    public void dungeonChoices() {
-        while (isInDungeon) {
-            if (dungeon == null) {
-                createDungeon();
-                delay(800);
-            }
-            textBox((!dungeon.conquered ? "1. Explore Floor" : "1. Move to new Dungeon") + "\n2. Move to previous Floor \n3. Move to next floor \n4. Display Stats \n5. Check Inventory \n6. Use Potion \n7. Check Beastiary \n8. Leave Dungeon \n9. Leave Game");
-            System.out.print(">>>");
-            int choice = scanner.nextInt();
-
-            switch (choice) {
-                case 1 -> {
-                    if (dungeon.conquered == true) {
-                        createDungeon();
-                        System.out.println(dungeon.conquered);
-                    }
-                    exploreFloor();
-                }
-                case 2 -> {
-                    if (dungeon.current > 1) {
-                        dungeon.current--;
-                        System.out.println("Moving to previous floor...");
-                    } else {
-                        System.out.println("You are unable to move to a previous floor.");
-                    }
-                }
-                case 3 -> {
-                    if (canMoveNextFloor) {
-                        dungeon.current++;
-                        System.out.println("Moving to next floor...");
-                        canMoveNextFloor = false;
-                    } else {
-                        System.out.println("You are unable to move to the next floor.");
-                    }
-                }
-                case 4 -> {
-                    displayStats();
-                }
-                case 5 -> {
-                    inPlayerInventory = true;
-                    playerInventory();
-                }
-                case 6 -> {
-
-                    if (!player.playerPotionInventory.isEmpty()) {
-                        System.out.println("What potion would you like to use?\n" + "=".repeat(60));
-                        int count = 0;
-                        for (Potion potion : player.playerPotionInventory) {
-                            count++;
-                            System.out.println(count + ". " + potion.name + ", lvl: " + potion.level);
-                        }
-                        System.out.println("=".repeat(60));
-                        System.out.print(">>>");
-                        int ans = scanner.nextInt();
-                        if (ans <= player.playerPotionInventory.size() && ans > 0 && !player.playerPotionInventory.isEmpty()) {
-                            Potion potion = player.playerPotionInventory.get(ans - 1);
-                            usePotion(ans);
-                            switch (potion.effect) {
-                                case "heal" -> {
-                                    player.hp += potion.effect();
-                                }
-                                case "atkBuff" -> {
-                                    player.buffedAtk += potion.effect();
-                                }
-                                case "defBuff" -> {
-                                    player.buffedDef += potion.effect();
-                                }
-                            }
-                            delay(800);
-                        }
-                    } else {
-                        System.out.println("=".repeat(60) + "\n*No potions in inventory.");
-                        delay(800);
-                    }
-                }
-                case 7 -> {
-                    isInBeastiary = true;
-                    inBeastiary();
-                }
-                case 8 -> {
-                    isInDungeon = false;
-                    System.out.println("Leaving Dungeon");
-                    delay(800);
-                }
-                case 9 -> {
-                    saveGame();
-                    System.out.println("Leaving Game...");
-                    isInDungeon = false;
-                    inMenu = false;
-                    isRunning = false;
-                }
-            }
-            delay(800);
-        }
-    }
-
-    public void weaponShop() {
-        while (isInWeaponStore) {
-            textBox("coins: " + player.coins + "\n" + "-".repeat(60) + "\n" + """
-                1. Buy Weapon
-                2. Sell Weapon
-                3. <--Back""");
-            System.out.print(">>>");
-            int ans = scanner.nextInt();
-            delay(800);
-            switch (ans) {
-                case 1 -> {
-                    buyingWeapon = true;
-                    while (buyingWeapon) {
-                        int count = 0;
-                        textBox("Which weapon would you like to purchase?");
-                        for (dungeon_raiders.Weapon weapon : shopWeaponInventory) {
-                            count++;
-                            System.out.println(count + ". " + weapon.name + ", dmg: " + weapon.dmg + ", price: " + weapon.price);
-                        }
-                        count++;
-                        System.out.println(count + ". <--Back");
-                        System.out.print(">>>");
-                        ans = scanner.nextInt();
-                        if (ans == count) {
-                            buyingWeapon = false;
-                            break;
-                        }
-                        dungeon_raiders.Weapon item = shopWeaponInventory.get(ans - 1);
-                        if (item.price <= player.coins) {
-                            if (ans <= shopWeaponInventory.size() && ans > 0) {
-                                player.coins -= shopWeaponInventory.get(ans - 1).price;
-                                player.playerWeaponInventory.add(item);
-                                System.out.println(item.name + " added to inventory");
-                                delay(800);
-                                System.out.println(item.name + " removed from shop inventory");
-                                delay(800);
-                                System.out.println("You have purchased: " + item.name + "\n-" + item.price + " coins");
-                                shopWeaponInventory.remove(ans - 1);
-                                if (player.currentWeapon == null) {
-                                    player.currentWeapon = player.playerWeaponInventory.get(0);
-                                    player.playerWeaponInventory.remove(0);
-                                    System.out.println(item.name + " removed from inventory.");
-                                    delay(800);
-                                    System.out.println(item.name + " automatically equiped.");
-                                }
-                            } else {
-                                System.out.println("Invalid value");
-                            }
-                        } else {
-                            System.out.println("You have insufficient funds.");
-                        }
-                        delay(800);
-                    }
-
-                }
-                case 2 -> {
-                    if (!player.playerWeaponInventory.isEmpty()) {
-                        int count = 0;
-                        textBox("Which weapon would you like to sell?");
-                        for (dungeon_raiders.Weapon weapon : player.playerWeaponInventory) {
-                            count++;
-                            System.out.println(count + ". " + weapon.name + ",dmg: " + weapon.dmg + ", current price: " + weapon.price);
-                        }
-                        System.out.print(">>>");
-                        ans = scanner.nextInt();
-                        if (ans <= player.playerWeaponInventory.size() && ans > 0) {
-                            System.out.println(player.playerWeaponInventory.get(ans - 1).name + " was sold");
-                            player.playerWeaponInventory.remove(ans - 1);
-                            delay(800);
-                        } else {
-                            System.out.println("Invalid value");
-                        }
-                    } else {
-                        System.out.println("You currently have nothing to sell.");
-                    }
-                }
-                case 3 -> {
-                    isInWeaponStore = false;
-                }
-                default -> {
-
-                }
-            }
-        }
-    }
-
-    public void potionShop() {
-        while (isInPotionStore) {
-            textBox("coins: " + player.coins + "\n" + "-".repeat(60) + "\n" + """
-                1. Buy Potion
-                2. Sell Potion
-                3. <--Back""");
-            System.out.print(">>>");
-            int ans = scanner.nextInt();
-            delay(800);
-            switch (ans) {
-                case 1 -> {
-                    buyingPotion = true;
-                    while (buyingPotion) {
-                        int count = 0;
-                        textBox("Which potion would you like to purchase?");
-                        for (Potion potion : shopPotionInventory) {
-                            count++;
-                            System.out.println(count + ". " + potion.name + ", lvl: " + potion.level + ", price: " + potion.price);
-                        }
-                        count++;
-                        System.out.println(count + ". <--Back");
-                        System.out.print(">>>");
-                        ans = scanner.nextInt();
-                        if (ans == count) {
-                            buyingPotion = false;
-                            break;
-                        }
-                        Potion potion = shopPotionInventory.get(ans - 1);
-                        if (potion.price <= player.coins) {
-                            if (ans <= shopPotionInventory.size() && ans > 0) {
-                                player.coins -= shopPotionInventory.get(ans - 1).price;
-                                player.playerPotionInventory.add(potion);
-                                System.out.println(potion.name + " added to inventory");
-                                delay(800);
-                                System.out.println(potion.name + " removed from shop inventory");
-                                delay(800);
-                                System.out.println("You have purchased: " + potion.name + "\n-" + potion.price + " coins");
-                                shopPotionInventory.remove(ans - 1);
-                            } else {
-                                System.out.println("Invalid value");
-                            }
-                        } else {
-                            System.out.println("You have insufficient funds.");
-                            delay(800);
-                        }
-                    }
-                }
-                case 2 -> {
-                    if (!player.playerPotionInventory.isEmpty()) {
-                        int count = 0;
-                        textBox("Which potion would you like to sell?");
-                        for (Potion potion : player.playerPotionInventory) {
-                            count++;
-                            System.out.println(count + ". " + potion.name + ",lvl: " + potion.level + ", current price: " + potion.price);
-                        }
-                        System.out.print(">>>");
-                        ans = scanner.nextInt();
-                        if (ans <= player.playerPotionInventory.size() && ans > 0) {
-                            System.out.println(player.playerPotionInventory.get(ans - 1).name + " was sold");
-                            player.playerPotionInventory.remove(ans - 1);
-                            delay(800);
-                        } else {
-                            System.out.println("Invalid value");
-                        }
-                    } else {
-                        System.out.println("You currently have nothing to sell.");
-                    }
-                }
-                case 3 -> {
-                    isInPotionStore = false;
-                }
-                default -> {
-
-                }
-            }
-        }
-    }
-
-    public void shop() {
-        while (inShop) {
-            System.out.println("What would you like to purchase?");
-            textBox("1. Weapons \n2. Potions \n3. <--Back");
-            System.out.print(">>>");
-            int ans = scanner.nextInt();
-            delay(800);
-            switch (ans) {
-                case 1 -> {
-                    isInWeaponStore = true;
-                    weaponShop();
-                }
-                case 2 -> {
-                    isInPotionStore = true;
-                    potionShop();
-                }
-                case 3 -> {
-                    System.out.println("Leaving Store...");
-                    inShop = false;
-                }
-                default -> {
-
-                }
-            }
-
-        }
-    }
-
-    public void exploreFloor() {
-        System.out.println("You are currently on floor " + dungeon.current + ".");
-        if (Math.random() > 0.5) {//50/50 odds for either trying for enemy encounter or finding next floor stairs
-            if (encounterEnemy() || enemyFloorPity == 3) {
-
-                fightSequence();
-                enemyFloorPity = 0;
-            } else {
-                enemyFloorPity++;
-            }
-        } else {
-            if ((findFloorStairs() || enemyFloorPity == 3) && !canMoveNextFloor) {
-                System.out.println("Would you like to move to the next floor? (y/n)");
-                canMoveNextFloor = true;
-                System.out.print(">>>");
-                String ans = scanner.next();
-                delay(800);
-                switch (ans) {
-                    case "y" -> {
-                        dungeon.current++;
-                        if (dungeon.current == dungeon.floors) {
-                            dungeon.conquered = true;
-                        }
-                        System.out.println("Moved to floor " + dungeon.current + ".");
-                    }
-                    case "n" -> {
-                        dungeonChoices();
-                    }
-                }
-                enemyFloorPity = 0;// reset floor finding pity
-            } else {
-                enemyFloorPity++;
-            }
-        }
-
-    }
-
-    public void inBeastiary() {
-        while (isInBeastiary) {
-            if (!player.beastiary.isEmpty()) {
-                System.out.println("Which enemy would you like to checkout.\n" + "=".repeat(60));
-                int count = 0;
-                for (BeastLog beastLog : player.beastiary) {
-                    count++;
-                    System.out.println(count + ". " + beastLog.enemy.name);
-                }
-                System.out.print("=".repeat(60) + "\n>>>");
-                int ans = scanner.nextInt();
-                if (ans > 0 && ans <= player.beastiary.size()) {
-                    Enemy beast = player.beastiary.get(ans - 1).enemy;
-                    String description = player.beastiary.get(ans - 1).description;
-                    textBox("name: " + beast.name
-                            + "\ndescription: " + description);
-                }
-                System.out.println("=".repeat(60));
-                System.out.println("1. <--Back");
-                System.out.print(">>>");
-                int back = scanner.nextInt();
-            } else {
-                System.out.println("Beastiary is currently empty.");
-                isInBeastiary = false;
-            }
-            delay(800);
-        }
-    }
-
-    public void fightSequence() {
-        System.out.println("You encountered an enemy.");
-        isFighting = true;
-        createEnemy();
-
-        if (!player.beastiary.contains(new BeastLog(enemy))) {
-            player.beastiary.add(new BeastLog(enemy));
-            System.out.println("New Beastiary Log made.");
-            delay(800);
-        }
-
-        while (isFighting) {
-            textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10)
-                    + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]"
-                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl
-                    + "\n" + "-".repeat(60)
-                    + "\n1. Attack \n2. Use Potion \n3. Escape\n4. Display Stats \n5. Check Beastiary");
-            System.out.print(">>>");
-            int ans = scanner.nextInt();
-            switch (ans) {
-                case 1 -> {//attack sequence
-                    attackEnemy();
-                    if (enemy.hp <= 0) {
-                        System.out.println("You have successfully defeated the enemy.");
-                        enemyDrops();
-                        levelUp();
-                        isFighting = false;
-                    }
-                    delay(800);
-
-                    if (isFighting) {
-                        enemyAttacks();
-                    }
-
-                    if (player.hp <= 0 && isFighting) {
-                        System.out.println("You have died to " + enemy.name);
-                        System.exit(0);
-                    }
-                    delay(800);
-                }
-                case 2 -> {
-                    if (!player.playerPotionInventory.isEmpty()) {
-                        System.out.println("What potion would you like to use?\n" + "=".repeat(60));
-                        int count = 0;
-                        for (Potion potion : player.playerPotionInventory) {
-                            count++;
-                            System.out.println(count + ". " + potion.name + ", lvl: " + potion.level);
-                        }
-                        System.out.println("=".repeat(60));
-                        System.out.print(">>>");
-                        ans = scanner.nextInt();
-                        if (ans <= player.playerPotionInventory.size() && ans > 0 && !player.playerPotionInventory.isEmpty()) {
-                            Potion potion = player.playerPotionInventory.get(ans - 1);
-                            usePotion(ans);
-                            switch (potion.effect) {
-                                case "heal" -> {
-                                    player.hp += potion.effect();
-                                }
-                                case "atkBuff" -> {
-                                    player.buffedAtk += potion.effect();
-                                }
-                                case "defBuff" -> {
-                                    player.buffedDef += potion.effect();
-                                }
-                            }
-                            delay(800);
-                        }
-
-                        if (isFighting) {
-                            enemyAttacks();
-                        }
-
-                        if (player.hp <= 0 && isFighting) {
-                            System.out.println("You have died to " + enemy.name);
-                            System.exit(0);
-                        }
-                        delay(800);
-                    } else {
-                        System.out.println("=".repeat(60) + "\n*No potions in inventory.");
-                        delay(800);
-                    }
-                }
-                case 3 -> {
-                    if (canEscape) {
-                        if (escapeEnemy()) {
-                            System.out.println("You have successfully escaped from the enemy.");
-                            isFighting = false;
-                        } else {
-                            System.out.println("You have failed to escape.");
-                            canEscape = false;
-                        }
-                    } else {
-                        System.out.println("You can no longer escape!");
-                    }
-                    delay(800);
-
-                }
-                case 4 -> {
-                    displayStats();
-                    delay(800);
-                }
-                case 5 -> {
-                    isInBeastiary = true;
-                    inBeastiary();
-                }
-                default -> {
-                }
-            }
-        }
-
-        player.buffedAtk = 0;
-        player.buffedDef = 0;
-        canEscape = true; //canEscape reset after entire encounter
-        enemy = null; //enemy reset
-    }
-
     public void usePotion(int ans) {
         Potion potion = player.playerPotionInventory.get(ans - 1);
         System.out.println("You have seleted " + potion.name);
@@ -1036,24 +1234,6 @@ class Game {
         player.playerPotionInventory.remove(ans - 1);
         System.out.println("Potion removed from player inventory.");
         delay(800);
-    }
-
-    public void attackEnemy() {
-        int damage = (player.role.equals("mage") ? player.kno + player.buffedAtk : player.atk + player.buffedAtk) + (player.currentWeapon != null ? player.currentWeapon.dmg : 0) - (int) Math.floor(Math.random() * enemy.def + 1);
-        if (hitEvasion("hit")) {
-            System.out.println("You have attacked the enemy. -" + damage + "hp");
-            enemy.hp -= damage;
-            if (Math.random() < 0.4 - (0.1 * player.luc) && player.currentWeapon != null) {
-                player.currentWeapon.durability--;
-                System.out.println("-1 durability");
-                delay(800);
-            }
-        } else {
-            System.out.println("You have missed your attack.");
-        }
-        if (player.currentWeapon != null) {
-            player.currentWeapon.price = (int) Math.floor(player.currentWeapon.durability / 20);
-        }
     }
 
     public void enemyAttacks() {
@@ -1124,7 +1304,6 @@ class Game {
         return Math.random() > 0.8 - (0.1 * player.luc);//30% base chance to escape enemy
     }
 
-    //---------------------------------------SHOP BASED METHODS-----------------------------------------------------------
     //---------------------------------------ENEMY BASED METHODS-----------------------------------------------------------
     public void fetchEnemyList() {
         try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("enemies.bin"))) {
@@ -1201,21 +1380,6 @@ class Game {
 
         double increment = maxGain * Math.pow(decayFactor, stat);
         return maxGain - increment;
-    }
-
-    public void displayStats() {
-        textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]"
-                + "\nLevel: " + player.currentLevel
-                + "\nTokens: " + player.tokens
-                + "\nRole: " + player.role
-                + "\n" + "-".repeat(60)
-                + "\nVIT: " + player.VIT
-                + "\nSTR: " + player.STR
-                + "\nINT: " + player.INT
-                + "\nLUC: " + player.LUC
-                + "\n" + "-".repeat(60)
-                + "\nCurrent Weapon: " + player.currentWeapon.name
-        );
     }
 
     public void displayStatDetails() {
@@ -1369,7 +1533,7 @@ class Enemy implements Serializable {
 class Dungeon {
 
     int floors = 5;
-    int current = 1;
+    int currentFloor = 1;
     boolean conquered = false;
 
     public Dungeon() {
