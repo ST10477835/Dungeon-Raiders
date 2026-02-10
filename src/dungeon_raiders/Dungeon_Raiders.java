@@ -505,7 +505,6 @@ class Game {
                 System.out.println("You currently have nothing to sell.");
                 inSellPotion = false;
             }
-            System.out.println("hello");
             delay(800);
         }
     }
@@ -579,22 +578,18 @@ class Game {
         }
     }
 
-    public double luckBonus(double luck) {
-        return Math.log(luck + 1) * 0.08;
-    }
-
     public void exploreFloor() {
         //every explore floor you could either find stairs to next floor, find monster, or come across loot with the chance of that being a mimic
         System.out.println("You are currently on floor " + dungeon.currentFloor + ".");
 
         double rng = Math.random();
         if (rng < 0.10 + luckBonus(player.currentLuck)) {//finding loot
-            inEnemyEncounter = true;
-            enemyEncounter();
+
         } else if (rng < 0.25) {//25% chance of finding stairs in every room you enter
 
         } else if (rng < 0.30) {//30% chance of encountering an enemy
-
+            inEnemyEncounter = true;
+            enemyEncounter();
         } else {//Nothing happens
             System.out.println("The room you entered is empty.");
         }
@@ -685,25 +680,53 @@ class Game {
         return Math.max(0.2, 1 - reduction);
     }
 
+    public void manageWeaponDurability() {
+        if (Math.random() < 0.4 - Math.min(0.4, luckBonus(player.currentLuck))) {
+            player.currentWeapon.durability--;
+            System.out.println("-1 Durability");
+        }
+    }
+
     public void attackEnemy() {
         double DMG = player.totalPhysicalDamage() + player.totalMagicalDamage() - defenseMultiplier(enemy.def);
-        
-        
 
-        int damage = (player.role.equals("mage") ? player.kno + player.buffedAtk : player.atk + player.buffedAtk) + (player.currentWeapon != null ? player.currentWeapon.dmg : 0) - (int) Math.floor(Math.random() * enemy.def + 1);
-        if (hitEvasion("hit")) {
-            System.out.println("You have attacked the enemy. -" + damage + "hp");
-            enemy.hp -= damage;
-            if (Math.random() < 0.4 - (0.1 * player.luc) && player.currentWeapon != null) {
-                player.currentWeapon.durability--;
-                System.out.println("-1 durability");
-                delay(800);
+        if (!playerMiss()) {
+            enemy.hp -= DMG;
+            System.out.println("You have attacked the enemy. -" + DMG + "hp");
+
+            //should the enemy die after attack
+            if (enemy.hp <= 0) {
+                enemyDrops();
+                //handling enemy drop rates
+                levelUp();
+                //level up req
+                inEnemyEncounter = false;
+                System.out.println("You have successfully defeated the enemy.");
             }
+
+            manageWeaponDurability();
+            //base 40% chance of losing 1 durability
         } else {
             System.out.println("You have missed your attack.");
         }
-        if (player.currentWeapon != null) {
-            player.currentWeapon.price = (int) Math.floor(player.currentWeapon.durability / 20);
+        delay(800);
+    }
+    
+    public void enemyAttacks() {
+        double DMG = enemy.atk - defenseMultiplier(player.currentDefense);
+        
+        if (!enemyMiss()) {
+            player.hp -= DMG;
+            System.out.println("Enemy has attacked you. -" + DMG + "hp");
+            
+            //should the player die after enemy attack
+            
+            if(player.hp <= 0){
+                System.out.println("You have died.");
+                System.exit(0);//for now
+            }
+        } else {
+            System.out.println("Enemy has missed its attack.");
         }
     }
 
@@ -912,6 +935,17 @@ class Game {
         System.out.println("New dungeon created.");
     }
 
+    public double luckBonus(double luck) {
+        return Math.log(luck + 1) * 0.11;
+    }
+
+    public boolean playerMiss() {
+        return Math.random() < 0.2 - Math.min(0.2, luckBonus(player.currentLuck));
+    }
+
+    public boolean enemyMiss() {
+        return Math.random() < 0.2 - Math.min(0.2, luckBonus(enemy.currentLuck));
+    }
     //-------------------------------------------PLAYER OPTIONS------------------------------------------------------
     public void playerOptions() {
         while (inPlayerOptions) {
@@ -1237,19 +1271,6 @@ class Game {
         delay(800);
     }
 
-    public void enemyAttacks() {
-        int damage = enemy.atk - (int) Math.floor(Math.random() * player.def + player.buffedDef + 1);
-        if (damage <= 0) {
-            damage = 1;
-        }
-        if (!hitEvasion("evasion")) {
-            System.out.println("Enemy has attacked you. -" + damage + "hp");
-            player.hp -= damage;
-        } else {
-            System.out.println("Enemy has missed its attack.");
-        }
-    }
-
     public void enemyDrops() {
         /*enemy has a chance to drop 3 items
             1 item is 100% guaranteed
@@ -1275,14 +1296,6 @@ class Game {
         player.expGauge += xp;
         System.out.println("exp gained: " + xp);
         delay(800);
-    }
-
-    public boolean hitEvasion(String hitEvasion) {
-        if (hitEvasion.equals("hit")) {
-            return Math.random() > 0.2 - (0.1 * player.luc);
-        } else {
-            return Math.random() < 0.2;
-        }
     }
 
     public void delay(int mill) {
@@ -1415,6 +1428,10 @@ class Game {
             player.currentLuck += setGainDecrease(i);
             System.out.println(i + ", " + player.currentLuck);
         }
+        for (int i = 1; i <= player.DEF; i++){
+            player.currentDefense += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentDefense);
+        }
     }
 
     public void levelUp() {
@@ -1457,14 +1474,16 @@ class Player implements Serializable {
     ArrayList<BeastLog> beastiary = new ArrayList<>();
 
     int VIT = 1;
+    int DEF = 1;
     int STR = 1;
     int INT = 1;
     int LUC = 1;
-
+    
     int maxHealth = 0;
     int currentHealth = 0;//hpGain()
     int currentLevel = 0;
     int currentXp = 0;
+    int currentDefense = 0;
     int currentPhysicalAttack = 0;//strGain()
     int currentMagicalAttack = 0;//intGain()
     int currentLuck = 0;//luckGain()
@@ -1521,6 +1540,9 @@ class Enemy implements Serializable {
     int hp;
     int atk;
     int def;
+    
+    int currentAttack = 1;
+    int currentLuck = 1;
 
     public Enemy(String name, String description, int lvl, int hp, int atk, int def) {
         this.name = name;
