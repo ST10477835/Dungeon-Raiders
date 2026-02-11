@@ -178,7 +178,7 @@ class Game {
                 player = loadPlayer(files.get(ans - 1).getName());
 
                 System.out.println("Welcome back " + player.name + ". Here are your current stats:");
-                displayStats();
+                displayPlayerStats();
                 delay(800);
 
                 inMenu = true;
@@ -556,15 +556,13 @@ class Game {
                     }
                 }
                 case 4 -> {
-                    displayStats();
+                    displayPlayerStats();
                 }
                 case 5 -> {
                     inPlayerInventory = true;
                     playerInventory();
                 }
                 case 6 -> {
-                    isInBeastiary = true;
-                    inBeastiary();
                 }
                 case 7 -> {
                     inDungeon = false;
@@ -583,50 +581,16 @@ class Game {
         System.out.println("You are currently on floor " + dungeon.currentFloor + ".");
 
         double rng = Math.random();
-        if (rng < 0.10 + luckBonus(player.currentLuck)) {//finding loot
-
-        } else if (rng < 0.25) {//25% chance of finding stairs in every room you enter
-
+        if (rng < 0.10 + Math.min(0.9, luckBonus(player.currentLuck))) {//finding loot
+            findingLoot();
+        } else if (rng < 0.25 && dungeon.currentFloor != dungeon.floors && !player.canMoveToNextFloor) {//25% chance of finding stairs in every room you enter
+            findingNextFloorStairs();
         } else if (rng < 0.30) {//30% chance of encountering an enemy
             inEnemyEncounter = true;
             enemyEncounter();
         } else {//Nothing happens
             System.out.println("The room you entered is empty.");
         }
-
-        if (Math.random() > 0.5) {//50/50 odds for either trying for enemy encounter or finding next floor stairs
-            if (encounterEnemy() || enemyFloorPity == 3) {
-
-                fightSequence();
-                enemyFloorPity = 0;
-            } else {
-                enemyFloorPity++;
-            }
-        } else {
-            if ((findFloorStairs() || enemyFloorPity == 3) && !canMoveNextFloor) {
-                System.out.println("Would you like to move to the next floor? (y/n)");
-                canMoveNextFloor = true;
-                System.out.print(">>>");
-                String ans = scanner.next();
-                delay(800);
-                switch (ans) {
-                    case "y" -> {
-                        dungeon.currentFloor++;
-                        if (dungeon.currentFloor == dungeon.floors) {
-                            dungeon.conquered = true;
-                        }
-                        System.out.println("Moved to floor " + dungeon.currentFloor + ".");
-                    }
-                    case "n" -> {
-                        dungeon();
-                    }
-                }
-                enemyFloorPity = 0;// reset floor finding pity
-            } else {
-                enemyFloorPity++;
-            }
-        }
-
     }
 
     public void enemyEncounter() {
@@ -651,19 +615,28 @@ class Game {
             int ans = scanner.nextInt();
             switch (ans) {
                 case 1 -> {
-
+                    playerAttack();
+                    enemyAttack();
                 }
                 case 2 -> {
-
+                    int checker = player.playerPotionInventory.size();
+                    usePotion();
+                    //if player actually proceeds to use potion then enemy has a chance to attack
+                    if (checker != player.playerPotionInventory.size()) {
+                        enemyAttack();
+                    }
                 }
                 case 3 -> {
-
+                    escapeEnemy();
+                    if (!player.canEscape) {
+                        enemyAttack();
+                    }
                 }
                 case 4 -> {
-
+                    displayPlayerStats();
                 }
                 case 5 -> {
-
+                    beastiary();
                 }
                 default -> {
                     System.out.println("Invalid Input.");
@@ -687,7 +660,7 @@ class Game {
         }
     }
 
-    public void attackEnemy() {
+    public void playerAttack() {
         double DMG = player.totalPhysicalDamage() + player.totalMagicalDamage() - defenseMultiplier(enemy.def);
 
         if (!playerMiss()) {
@@ -701,6 +674,9 @@ class Game {
                 levelUp();
                 //level up req
                 inEnemyEncounter = false;
+
+                player.canEscape = true;
+                //setup for next escape attempt for next enemy
                 System.out.println("You have successfully defeated the enemy.");
             }
 
@@ -711,158 +687,66 @@ class Game {
         }
         delay(800);
     }
-    
-    public void enemyAttacks() {
+
+    public void enemyAttack() {
         double DMG = enemy.atk - defenseMultiplier(player.currentDefense);
-        
+
         if (!enemyMiss()) {
             player.hp -= DMG;
             System.out.println("Enemy has attacked you. -" + DMG + "hp");
-            
+
             //should the player die after enemy attack
-            
-            if(player.hp <= 0){
-                System.out.println("You have died.");
-                System.exit(0);//for now
-            }
+            playerHealthChecker();
         } else {
             System.out.println("Enemy has missed its attack.");
         }
     }
 
-    public void updateBeastiary(BeastLog beastLog) {
-        if (!player.beastiary.contains(beastLog)) {
-            player.beastiary.add(beastLog);
-            System.out.println("New Beast Log Made.");
-            delay(800);
-        }
-    }
-
-    public void fightSequence() {
-        System.out.println("You encountered an enemy.");
-        isFighting = true;
-        createEnemy();
-
-        if (!player.beastiary.contains(new BeastLog(enemy))) {
-            player.beastiary.add(new BeastLog(enemy));
-            System.out.println("New Beastiary Log made.");
-            delay(800);
-        }
-
-        while (isFighting) {
-            textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10)
-                    + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]"
-                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl
-                    + "\n" + "-".repeat(60)
-                    + "\n1. Attack \n2. Use Potion \n3. Escape\n4. Display Stats \n5. Check Beastiary");
-            System.out.print(">>>");
-            int ans = scanner.nextInt();
-            switch (ans) {
-                case 1 -> {//attack sequence
-                    attackEnemy();
-                    if (enemy.hp <= 0) {
-                        System.out.println("You have successfully defeated the enemy.");
-                        enemyDrops();
-                        levelUp();
-                        isFighting = false;
-                    }
-                    delay(800);
-
-                    if (isFighting) {
-                        enemyAttacks();
-                    }
-
-                    if (player.hp <= 0 && isFighting) {
-                        System.out.println("You have died to " + enemy.name);
-                        System.exit(0);
-                    }
-                    delay(800);
-                }
-                case 2 -> {
-                    if (!player.playerPotionInventory.isEmpty()) {
-                        System.out.println("What potion would you like to use?\n" + "=".repeat(60));
-                        int count = 0;
-                        for (Potion potion : player.playerPotionInventory) {
-                            count++;
-                            System.out.println(count + ". " + potion.name + ", lvl: " + potion.level);
-                        }
-                        System.out.println("=".repeat(60));
-                        System.out.print(">>>");
-                        ans = scanner.nextInt();
-                        if (ans <= player.playerPotionInventory.size() && ans > 0 && !player.playerPotionInventory.isEmpty()) {
-                            Potion potion = player.playerPotionInventory.get(ans - 1);
-                            usePotion(ans);
-                            switch (potion.effect) {
-                                case "heal" -> {
-                                    player.hp += potion.effect();
-                                }
-                                case "atkBuff" -> {
-                                    player.buffedAtk += potion.effect();
-                                }
-                                case "defBuff" -> {
-                                    player.buffedDef += potion.effect();
-                                }
-                            }
-                            delay(800);
-                        }
-
-                        if (isFighting) {
-                            enemyAttacks();
-                        }
-
-                        if (player.hp <= 0 && isFighting) {
-                            System.out.println("You have died to " + enemy.name);
-                            System.exit(0);
-                        }
-                        delay(800);
-                    } else {
-                        System.out.println("=".repeat(60) + "\n*No potions in inventory.");
-                        delay(800);
-                    }
-                }
-                case 3 -> {
-                    if (canEscape) {
-                        if (escapeEnemy()) {
-                            System.out.println("You have successfully escaped from the enemy.");
-                            isFighting = false;
-                        } else {
-                            System.out.println("You have failed to escape.");
-                            canEscape = false;
-                        }
-                    } else {
-                        System.out.println("You can no longer escape!");
-                    }
-                    delay(800);
-
-                }
-                case 4 -> {
-                    displayStats();
-                    delay(800);
-                }
-                case 5 -> {
-                    isInBeastiary = true;
-                    inBeastiary();
-                }
-                default -> {
-                }
+    public void usePotion() {
+        boolean inUsePotion = true;
+        while (inUsePotion) {
+            System.out.println("Which potion would you like to use? \n" + "=".repeat(60));
+            int count = 0;
+            for (Potion potion : player.playerPotionInventory) {
+                count++;
+                System.out.println(count + ". " + potion.name);
             }
+            count++;
+            System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+            int ans = scanner.nextInt();
+            delay(800);
+
+            if (ans >= 0 && ans < player.playerPotionInventory.size()) {
+                Potion potion = player.playerPotionInventory.get(ans - 1);
+                player.playerPotionInventory.remove(potion);
+
+                /*player actually using the potion code*/
+                System.out.println("You have used " + potion.name);
+                inUsePotion = false;
+            } else if (ans == count) {
+                inUsePotion = false;
+            } else {
+                System.out.println("Invalid Input.");
+            }
+            delay(800);
         }
-
-        player.buffedAtk = 0;
-        player.buffedDef = 0;
-        canEscape = true; //canEscape reset after entire encounter
-        enemy = null; //enemy reset
     }
 
-    public void moveToNextFloor() {
-
+    public void escapeEnemy() {
+        if (player.canEscape) {
+            if (Math.random() < 0.2 + Math.min(0.8, luckBonus(player.currentLuck))) {
+                inEnemyEncounter = false;
+                System.out.println("You have successfully escaped.");
+            } else {
+                System.out.println("You have failed trying to escape.");
+                player.canEscape = false;
+            }
+        } else {
+            System.out.println("Player can no longer attempt escaping.");
+        }
     }
 
-    public void moveToPreviousFloor() {
-
-    }
-
-    public void displayStats() {
+    public void displayPlayerStats() {
         textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]"
                 + "\nLevel: " + player.currentLevel
                 + "\nTokens: " + player.tokens
@@ -877,33 +761,85 @@ class Game {
         );
     }
 
-    public void inBeastiary() {
-        while (isInBeastiary) {
-            if (!player.beastiary.isEmpty()) {
-                System.out.println("Which enemy would you like to checkout.\n" + "=".repeat(60));
-                int count = 0;
-                for (BeastLog beastLog : player.beastiary) {
-                    count++;
-                    System.out.println(count + ". " + beastLog.enemy.name);
+    public void findingNextFloorStairs() {
+        if (Math.random() < 0.20 + Math.min(0.8, luckBonus(player.currentLuck))) {
+            boolean inFindingNextFloorStairs = true;
+            while (inFindingNextFloorStairs) {
+                System.out.println("You have found the stairs to the next floor. Would you like to move on? (y/n)");
+                String ans = scanner.next();
+                delay(800);
+
+                switch (ans) {
+                    case "y" -> {
+                        System.out.println("Moving to the next floor.");
+                    }
+                    case "n" -> {
+                        System.out.println("Staying on current floor.");
+                        player.canMoveToNextFloor = true;
+                    }
+                    default -> {
+                        System.out.println("Invalid Input.");
+                    }
                 }
-                System.out.print("=".repeat(60) + "\n>>>");
-                int ans = scanner.nextInt();
-                if (ans > 0 && ans <= player.beastiary.size()) {
-                    Enemy beast = player.beastiary.get(ans - 1).enemy;
-                    String description = player.beastiary.get(ans - 1).description;
-                    textBox("name: " + beast.name
-                            + "\ndescription: " + description);
-                }
-                System.out.println("=".repeat(60));
-                System.out.println("1. <--Back");
-                System.out.print(">>>");
-                int back = scanner.nextInt();
-            } else {
-                System.out.println("Beastiary is currently empty.");
-                isInBeastiary = false;
             }
             delay(800);
         }
+    }
+    
+    public void findingLoot(){
+        boolean inFindingLoot = true;
+        while(inFindingLoot){
+            System.out.println("You have found a loot chest. Would you like to open it? (y/n)");
+            String ans = scanner.next();
+            delay(800);
+            
+            switch(ans){
+                case "y"->{
+                    openLootBox();
+                    inFindingLoot = false;
+                }
+                case "n"->{
+                    System.out.println("You have chosen to not open this loot chest. ");
+                    inFindingLoot = false;
+                }
+                default->{
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public void openLootBox(){
+        if(Math.random() < 0.5 + Math.min(0.5, luckBonus(player.currentLuck))){
+            System.out.println("You have found loot.");
+            //work on exact drops later.
+        }else{
+            player.currentHealth--;
+            playerHealthChecker();
+            System.out.println("You have encountered a mimic.");
+        }
+    }
+    
+    public void playerHealthChecker(){
+        if (player.hp <= 0) {
+                System.out.println("You have died.");
+                System.exit(0);//for now
+            }
+    }
+    public void updateBeastiary(BeastLog beastLog) {
+        if (!player.beastiary.contains(beastLog)) {
+            player.beastiary.add(beastLog);
+            System.out.println("New Beast Log Made.");
+            delay(800);
+        }
+    }
+
+    public void moveToNextFloor() {
+
+    }
+
+    public void moveToPreviousFloor() {
+
     }
 
     public void dungeonChecker() {
@@ -946,6 +882,7 @@ class Game {
     public boolean enemyMiss() {
         return Math.random() < 0.2 - Math.min(0.2, luckBonus(enemy.currentLuck));
     }
+
     //-------------------------------------------PLAYER OPTIONS------------------------------------------------------
     public void playerOptions() {
         while (inPlayerOptions) {
@@ -1306,16 +1243,8 @@ class Game {
         }
     }
 
-    public boolean findFloorStairs() {
-        return Math.random() > 0.8;//20% chance to find next floor stairs
-    }
-
     public boolean encounterEnemy() {
         return Math.random() > 0.5;//50% chance to encounter an enemy
-    }
-
-    public boolean escapeEnemy() {
-        return Math.random() > 0.8 - (0.1 * player.luc);//30% base chance to escape enemy
     }
 
     //---------------------------------------ENEMY BASED METHODS-----------------------------------------------------------
@@ -1428,7 +1357,7 @@ class Game {
             player.currentLuck += setGainDecrease(i);
             System.out.println(i + ", " + player.currentLuck);
         }
-        for (int i = 1; i <= player.DEF; i++){
+        for (int i = 1; i <= player.DEF; i++) {
             player.currentDefense += setGainDecrease(i);
             System.out.println(i + ", " + player.currentDefense);
         }
@@ -1467,6 +1396,10 @@ class Player implements Serializable {
     //used in levelling up player stats
     int tokens = 0;
 
+    boolean canEscape = true;
+    boolean canMoveToNextFloor = false;
+    boolean canMoveToPreviousFloor = false;
+
     Role role;
 
     ArrayList<Weapon> playerWeaponInventory = new ArrayList<>();
@@ -1478,7 +1411,7 @@ class Player implements Serializable {
     int STR = 1;
     int INT = 1;
     int LUC = 1;
-    
+
     int maxHealth = 0;
     int currentHealth = 0;//hpGain()
     int currentLevel = 0;
@@ -1540,7 +1473,7 @@ class Enemy implements Serializable {
     int hp;
     int atk;
     int def;
-    
+
     int currentAttack = 1;
     int currentLuck = 1;
 
