@@ -539,21 +539,10 @@ class Game {
                     exploreFloor();
                 }
                 case 2 -> {
-                    if (dungeon.currentFloor > 1) {
-                        dungeon.currentFloor--;
-                        System.out.println("Moving to previous floor...");
-                    } else {
-                        System.out.println("You are unable to move to a previous floor.");
-                    }
+                    moveToNextFloor();
                 }
                 case 3 -> {
-                    if (canMoveNextFloor) {
-                        dungeon.currentFloor++;
-                        System.out.println("Moving to next floor...");
-                        canMoveNextFloor = false;
-                    } else {
-                        System.out.println("You are unable to move to the next floor.");
-                    }
+                    moveToPreviousFloor();
                 }
                 case 4 -> {
                     displayPlayerStats();
@@ -563,10 +552,12 @@ class Game {
                     playerInventory();
                 }
                 case 6 -> {
+                    inBeastiary = true;
+                    beastiary();
                 }
                 case 7 -> {
                     inDungeon = false;
-                    System.out.println("Leaving Dungeon");
+                    System.out.println("Leaving Dungeon...");
                 }
                 default -> {
                     System.out.println("Invalid Input.");
@@ -620,7 +611,7 @@ class Game {
                 }
                 case 2 -> {
                     int checker = player.playerPotionInventory.size();
-                    usePotion();
+                    playerPotionInventory();
                     //if player actually proceeds to use potion then enemy has a chance to attack
                     if (checker != player.playerPotionInventory.size()) {
                         enemyAttack();
@@ -702,36 +693,6 @@ class Game {
         }
     }
 
-    public void usePotion() {
-        boolean inUsePotion = true;
-        while (inUsePotion) {
-            System.out.println("Which potion would you like to use? \n" + "=".repeat(60));
-            int count = 0;
-            for (Potion potion : player.playerPotionInventory) {
-                count++;
-                System.out.println(count + ". " + potion.name);
-            }
-            count++;
-            System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
-            int ans = scanner.nextInt();
-            delay(800);
-
-            if (ans >= 0 && ans < player.playerPotionInventory.size()) {
-                Potion potion = player.playerPotionInventory.get(ans - 1);
-                player.playerPotionInventory.remove(potion);
-
-                /*player actually using the potion code*/
-                System.out.println("You have used " + potion.name);
-                inUsePotion = false;
-            } else if (ans == count) {
-                inUsePotion = false;
-            } else {
-                System.out.println("Invalid Input.");
-            }
-            delay(800);
-        }
-    }
-
     public void escapeEnemy() {
         if (player.canEscape) {
             if (Math.random() < 0.2 + Math.min(0.8, luckBonus(player.currentLuck))) {
@@ -772,6 +733,7 @@ class Game {
                 switch (ans) {
                     case "y" -> {
                         System.out.println("Moving to the next floor.");
+                        player.canMoveToPreviousFloor = true;
                     }
                     case "n" -> {
                         System.out.println("Staying on current floor.");
@@ -826,6 +788,7 @@ class Game {
                 System.exit(0);//for now
             }
     }
+    
     public void updateBeastiary(BeastLog beastLog) {
         if (!player.beastiary.contains(beastLog)) {
             player.beastiary.add(beastLog);
@@ -835,11 +798,22 @@ class Game {
     }
 
     public void moveToNextFloor() {
-
+        if(player.canMoveToNextFloor && dungeon.currentFloor != dungeon.floors){
+            dungeon.currentFloor++;
+            System.out.println("Moving to next floor...");
+        }else{
+            System.out.println("Unable to move to next floor...");
+        }
+        delay(800);
     }
 
     public void moveToPreviousFloor() {
-
+        if(player.canMoveToPreviousFloor && dungeon.currentFloor != 1){
+            dungeon.currentFloor--;
+            System.out.println("Moving to previous floor...");
+        }else{
+            System.out.println("Unable to move to previous floor...");
+        }
     }
 
     public void dungeonChecker() {
