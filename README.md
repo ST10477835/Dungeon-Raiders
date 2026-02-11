@@ -29,8 +29,11 @@ The game makes use of layered probability mechanics in controlling the outcomes 
 
 ---
 
-## Percentage rates
+## Probability rates
 
 | Action | Probability % |
 | --- | --- |
-| Finding Chest | 20 % |
+| Finding Chest | **10 %** (Affected by player luck stat) |
+| Loot being hidden mimic | **35 %** |
+| Encountering an Enemy | **30 %** |
+| Finding next floor stairs | ** 25 %** (100% after reaching max pity)|
