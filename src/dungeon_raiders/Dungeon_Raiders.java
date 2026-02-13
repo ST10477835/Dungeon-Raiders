@@ -100,8 +100,7 @@ class Game {
     ArrayList<Weapon> shopWeaponInventory = new ArrayList<>(Arrays.asList(new Weapon("World Ender", 10, 2), new Weapon("Steel Nail", 10, 2), new Weapon("Mage's Staff", 10, 2)));
     ArrayList<Potion> shopPotionInventory = new ArrayList<>(Arrays.asList(new Potion("Regeneration", 1, 5, "heal"), new Potion("Attack", 1, 5, "atkBuff"), new Potion("Defense", 1, 5, "defBuff")));
 
-    ArrayList<Enemy> enemies = loadEnemyData();
-    int enemyFloorPity = 0;
+    ArrayList<Enemy> enemies = new SaveEnemyData().enemies;
 
     public Game() {
 
@@ -112,15 +111,12 @@ class Game {
             }
         }
 
-        for (Enemy enemy : enemies) {
-            System.out.println(enemy.name);
-        }
-
-        /*new Thread(() -> {
+        setStats();
+        new Thread(() -> {
             while (isRunning) {
                 startScreen();
             }
-        }).start();*/
+        }).start();
     }
 
     public void startScreen() {
@@ -193,6 +189,7 @@ class Game {
 
     public void createEnemy() {
         enemy = enemies.get((int) Math.floor(Math.random() * enemies.size()));
+        enemySetStats();
     }
 
     public void showWeaponStats(Weapon weapon) {
@@ -259,8 +256,7 @@ class Game {
             textBox("""
                     1. Weapons
                     2. Potions
-                    3. <--Back
-                    """);
+                    3. <--Back""");
             System.out.print(">>>");
             int ans = scanner.nextInt();
             delay(800);
@@ -344,24 +340,24 @@ class Game {
     public void buyWeapon() {
         while (inBuyWeapon) {
             int count = 0;
-            textBox("Which weapon would you like to checkout?\n" + "=".repeat(60));
+            textBox("Which weapon would you like to checkout?");
             for (dungeon_raiders.Weapon weapon : shopWeaponInventory) {
                 count++;
                 System.out.println(count + ". " + weapon.name);
             }
 
             count++;
-            System.out.print("\n" + "=".repeat(60) + "\n" + count + ". <--Back\n>>>");
+            System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
             int ans = scanner.nextInt();
             delay(800);
 
-            Weapon weapon = shopWeaponInventory.get(ans - 1);
-
             if (ans >= 0 && ans < shopWeaponInventory.size()) {
+
+                Weapon weapon = shopWeaponInventory.get(ans - 1);
                 showWeaponStats(weapon);
                 System.out.println("""
                                    1. Purchase Weapon
-                                   --Press Enter to Continue--""");
+                                   2. <--Back""");
                 System.out.print(">>>");
                 ans = scanner.nextInt();
                 delay(800);
@@ -381,8 +377,10 @@ class Game {
 
                         autoEquipWeapon();
                         //if player does not have weapon equipped after purchase the next weapon purchased is automatically equiped
-                    } else {
+                    } else if (ans == 2) {
                         System.out.println("Insufficient funds.");
+                    } else {
+                        System.out.println("Invalid Input.");
                     }
                 }
             } else if (ans == count) {
@@ -403,13 +401,13 @@ class Game {
                 System.out.println(count + ". " + potion.name);
             }
             count++;
-            System.out.print("\n" + count + ". <--Back\n>>>");
+            System.out.print(count + ". <--Back\n>>>");
             int ans = scanner.nextInt();
             delay(800);
 
-            Potion potion = shopPotionInventory.get(ans - 1);
-
             if (ans >= 0 && ans < shopPotionInventory.size()) {
+
+                Potion potion = shopPotionInventory.get(ans - 1);
                 if (potion.price <= player.coins) {
                     player.coins -= potion.price;
                     // potion price coins deducted from player account
@@ -576,31 +574,36 @@ class Game {
             findingLoot();
         } else if (rng < 0.25 && dungeon.currentFloor != dungeon.floors && !player.canMoveToNextFloor) {//25% chance of finding stairs in every room you enter
             findingNextFloorStairs();
-        } else if (rng < 0.30) {//30% chance of encountering an enemy
+        } else if (rng < 0.30 || dungeon.pity == 3) {//30% chance of encountering an enemy
             inEnemyEncounter = true;
             enemyEncounter();
+
+            dungeon.pity = 0;
+            //pity reset
         } else {//Nothing happens
             System.out.println("The room you entered is empty.");
+            dungeon.pity++;
+            //increases pity by one increasing the chances of finding something next time
         }
     }
 
     public void enemyEncounter() {
-        while (inEnemyEncounter) {
-            createEnemy();
-            System.out.println("You have encountered an enemy.");
+        createEnemy();
+        System.out.println("You have encountered an enemy.");
+        updateBeastiary(new BeastLog(enemy));
 
-            updateBeastiary(new BeastLog(enemy));
+        while (inEnemyEncounter) {
 
             textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10)
                     + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]"
-                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl
-                    + "\n" + "-".repeat(60));
-            textBox("""
-                    1. Attack 
-                    2. Use Potion 
-                    3. Escape
-                    4. Display Stats 
-                    5. Check Beastiary""");
+                    + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl);
+            System.out.println("""
+                               1. Attack
+                               2. Use Potion
+                               3. Escape
+                               4. Display Stats
+                               5. Check Beastiary
+                               """ + "=".repeat(60));
 
             System.out.print(">>>");
             int ans = scanner.nextInt();
@@ -611,6 +614,7 @@ class Game {
                 }
                 case 2 -> {
                     int checker = player.playerPotionInventory.size();
+                    inPlayerPotionInventory = true;
                     playerPotionInventory();
                     //if player actually proceeds to use potion then enemy has a chance to attack
                     if (checker != player.playerPotionInventory.size()) {
@@ -619,14 +623,12 @@ class Game {
                 }
                 case 3 -> {
                     escapeEnemy();
-                    if (!player.canEscape) {
-                        enemyAttack();
-                    }
                 }
                 case 4 -> {
                     displayPlayerStats();
                 }
                 case 5 -> {
+                    inBeastiary = true;
                     beastiary();
                 }
                 default -> {
@@ -652,11 +654,11 @@ class Game {
     }
 
     public void playerAttack() {
-        double DMG = player.totalPhysicalDamage() + player.totalMagicalDamage() - defenseMultiplier(enemy.def);
+        double DMG = player.totalPhysicalDamage() + player.totalMagicalDamage() - defenseMultiplier(enemy.currentDefense);
 
         if (!playerMiss()) {
             enemy.hp -= DMG;
-            System.out.println("You have attacked the enemy. -" + DMG + "hp");
+            System.out.println("You have attacked the enemy. -" + Math.ceil(DMG) + "hp");
 
             //should the enemy die after attack
             if (enemy.hp <= 0) {
@@ -700,6 +702,7 @@ class Game {
                 System.out.println("You have successfully escaped.");
             } else {
                 System.out.println("You have failed trying to escape.");
+                enemyAttack();
                 player.canEscape = false;
             }
         } else {
@@ -711,7 +714,7 @@ class Game {
         textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]"
                 + "\nLevel: " + player.currentLevel
                 + "\nTokens: " + player.tokens
-                + "\nRole: " + player.role
+                + "\nRole: " + player.role.type
                 + "\n" + "-".repeat(60)
                 + "\nVIT: " + player.VIT
                 + "\nSTR: " + player.STR
@@ -734,10 +737,12 @@ class Game {
                     case "y" -> {
                         System.out.println("Moving to the next floor.");
                         player.canMoveToPreviousFloor = true;
+                        inFindingNextFloorStairs = false;
                     }
                     case "n" -> {
                         System.out.println("Staying on current floor.");
                         player.canMoveToNextFloor = true;
+                        inFindingNextFloorStairs = false;
                     }
                     default -> {
                         System.out.println("Invalid Input.");
@@ -747,48 +752,48 @@ class Game {
             delay(800);
         }
     }
-    
-    public void findingLoot(){
+
+    public void findingLoot() {
         boolean inFindingLoot = true;
-        while(inFindingLoot){
+        while (inFindingLoot) {
             System.out.println("You have found a loot chest. Would you like to open it? (y/n)");
             String ans = scanner.next();
             delay(800);
-            
-            switch(ans){
-                case "y"->{
+
+            switch (ans) {
+                case "y" -> {
                     openLootBox();
                     inFindingLoot = false;
                 }
-                case "n"->{
+                case "n" -> {
                     System.out.println("You have chosen to not open this loot chest. ");
                     inFindingLoot = false;
                 }
-                default->{
+                default -> {
                     System.out.println("Invalid Input.");
                 }
             }
         }
     }
 
-    public void openLootBox(){
-        if(Math.random() < 0.5 + Math.min(0.5, luckBonus(player.currentLuck))){
+    public void openLootBox() {
+        if (Math.random() < 0.5 + Math.min(0.5, luckBonus(player.currentLuck))) {
             System.out.println("You have found loot.");
             //work on exact drops later.
-        }else{
+        } else {
             player.currentHealth--;
             playerHealthChecker();
             System.out.println("You have encountered a mimic.");
         }
     }
-    
-    public void playerHealthChecker(){
+
+    public void playerHealthChecker() {
         if (player.hp <= 0) {
-                System.out.println("You have died.");
-                System.exit(0);//for now
-            }
+            System.out.println("You have died.");
+            System.exit(0);//for now
+        }
     }
-    
+
     public void updateBeastiary(BeastLog beastLog) {
         if (!player.beastiary.contains(beastLog)) {
             player.beastiary.add(beastLog);
@@ -798,20 +803,20 @@ class Game {
     }
 
     public void moveToNextFloor() {
-        if(player.canMoveToNextFloor && dungeon.currentFloor != dungeon.floors){
+        if (player.canMoveToNextFloor && dungeon.currentFloor != dungeon.floors) {
             dungeon.currentFloor++;
             System.out.println("Moving to next floor...");
-        }else{
+        } else {
             System.out.println("Unable to move to next floor...");
         }
         delay(800);
     }
 
     public void moveToPreviousFloor() {
-        if(player.canMoveToPreviousFloor && dungeon.currentFloor != 1){
+        if (player.canMoveToPreviousFloor && dungeon.currentFloor != 1) {
             dungeon.currentFloor--;
             System.out.println("Moving to previous floor...");
-        }else{
+        } else {
             System.out.println("Unable to move to previous floor...");
         }
     }
@@ -836,6 +841,7 @@ class Game {
                 }
             } else {
                 createDungeon();
+                inDungeonChecker = false;
             }
         }
     }
@@ -997,8 +1003,8 @@ class Game {
                     System.out.println("Invalid Input");
                 }
             } else {
-                textBox("No potions found.");
-                inPlayerWeaponInventory = false;
+                System.out.println("=".repeat(60) + "\nNo potions found.");
+                inPlayerPotionInventory = false;
             }
             delay(800);
         }
@@ -1081,6 +1087,7 @@ class Game {
                     count++;
                     System.out.println(count + ". " + beastLog.enemy.name);
                 }
+                count++;
                 System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
                 int ans = scanner.nextInt();
                 delay(800);
@@ -1090,13 +1097,13 @@ class Game {
                             + "\ndescription: " + beast.description);
                 } else if (ans == count) {
                     inBeastiary = false;
+                } else {
+                    System.out.println("Invalid Input.");
                 }
-                System.out.println("=".repeat(60));
             } else {
                 System.out.println("Beastiary is currently empty.");
                 inBeastiary = false;
             }
-            delay(800);
         }
     }
 
@@ -1336,6 +1343,29 @@ class Game {
             System.out.println(i + ", " + player.currentDefense);
         }
     }
+    public void enemySetStats(){
+         for (int i = 1; i <= enemy.STR; i++) {
+            enemy.currentPhysicalAttack += setGainDecrease(i);
+            System.out.println(i + ", " + enemy.currentPhysicalAttack);
+        }
+        for (int i = 1; i <= enemy.INT; i++) {
+            enemy.currentMagicalAttack += setGainDecrease(i);
+            System.out.println(i + ", " + enemy.currentMagicalAttack);
+        }
+        for (int i = 1; i <= enemy.VIT; i++) {
+            enemy.currentHealth += setGainDecrease(i);
+            System.out.println(i + ", " + enemy.currentHealth);
+        }
+        for (int i = 1; i <= enemy.LUC; i++) {
+            enemy.currentLuck += setGainDecrease(i);
+            System.out.println(i + ", " + enemy.currentLuck);
+        }
+        for (int i = 1; i <= enemy.DEF; i++) {
+            enemy.currentDefense += setGainDecrease(i);
+            System.out.println(i + ", " + enemy.currentDefense);
+        }
+        
+    }
 
     public void levelUp() {
         while (inLevelUp) {
@@ -1443,20 +1473,36 @@ class Enemy implements Serializable {
 
     String name;
     String description;
+    
+    int level = 0;
+    
+    int VIT = 1;
+    int DEF = 1;
+    int STR = 1;
+    int INT = 1;
+    int LUC = 1;
+    
+    int maxHealth = 0;
+    int currentHealth = maxHealth;
+    int currentDefense = 0;
+    int currentPhysicalAttack = 0;//strGain()
+    int currentMagicalAttack = 0;//intGain()
+    int currentLuck = 0;//luckGain()
+    
     int lvl;
     int hp;
     int atk;
     int def;
-
-    int currentAttack = 1;
-    int currentLuck = 1;
-
-    public Enemy(String name, String description, int lvl, int hp, int atk, int def) {
+    
+    public Enemy(String name, String description, int level, int VIT, int DEF, int STR, int INT, int LUC) {
         this.name = name;
-        this.lvl = lvl;
-        this.hp = hp;
-        this.atk = atk;
-        this.def = def;
+        this.description = description;
+        this.level = level;
+        this.VIT = VIT;
+        this.DEF = DEF;
+        this.STR = STR;
+        this.INT = INT;
+        this.LUC = LUC;
     }
 }
 
@@ -1464,6 +1510,7 @@ class Dungeon {
 
     int floors = 5;
     int currentFloor = 1;
+    int pity = 0;
     boolean conquered = false;
 
     public Dungeon() {
@@ -1529,49 +1576,49 @@ class SaveEnemyData implements Serializable {
 
     ArrayList<Enemy> enemies = new ArrayList<>(Arrays.asList(
             new Enemy(
-                    "Ogre",
-                    "\"The hulking brutes of the wild.\"\n"
-                    + "Ogres are muscular, human-like giants standing 9 to 10 feet tall and weighing over 600 pounds. "
-                    + "They have hideous, disproportioned features, including large noses, tusks, warts, and often possess dull, "
-                    + "earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers, often resorting to violent "
-                    + "tantrums when frustrated.",
-                    1, 10, 3, 2
+                    "Ogre", """
+                            "The hulking brutes of the wild."
+                            Ogres are muscular, human-like giants standing 9 to 10 feet tall and weighing over 600 pounds. 
+                            They have hideous, disproportioned features, including large noses, tusks, warts, and often possess dull, 
+                            earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers, often resorting to violent 
+                            tantrums when frustrated.""",
+                    1, 1, 1, 1, 1, 1
             ),
             new Enemy(
-                    "Crocotta",
-                    "\"The Cackling Predators of the Badlands.\"\n"
-                    + "Crocottas are lean, hyena-like monstrosities roughly the size of a large lion, with powerful forequarters, "
-                    + "sloped backs, and long, bone-crushing jaws filled with jagged teeth. Their coarse fur ranges from dusty brown "
-                    + "to ash-grey, often mottled to blend into rocky plains and scrublands. Most unsettling is their intelligence "
-                    + "and cruel cunning—crocottas are known to mimic human voices and familiar sounds to lure prey into ambushes. "
-                    + "They delight in panic and pursuit, hunting not just to feed, but to terrorize.",
-                    1, 10, 2, 3
+                    "Crocotta", """
+                                "The Cackling Predators of the Badlands."
+                                Crocottas are lean, hyena-like monstrosities roughly the size of a large lion, with powerful forequarters, 
+                                sloped backs, and long, bone-crushing jaws filled with jagged teeth. Their coarse fur ranges from dusty brown 
+                                to ash-grey, often mottled to blend into rocky plains and scrublands. Most unsettling is their intelligence 
+                                and cruel cunning\u2014crocottas are known to mimic human voices and familiar sounds to lure prey into ambushes. 
+                                They delight in panic and pursuit, hunting not just to feed, but to terrorize.""",
+                    1, 1, 1, 1, 1, 1
             ),
             new Enemy(
-                    "Bicorn",
-                    "\"The Two-Horned Wardens of the Wilds.\"\n"
-                    + "Bicorns are massive, bull-like beasts with thick, corded muscle and a low, powerful stance built for "
-                    + "unstoppable charges. They are distinguished by their pair of forward-curving horns, polished smooth from "
-                    + "constant combat and territorial clashes. Their hides are dense and leathery, often scarred from battles. "
-                    + "When provoked, a bicorn’s charge can shatter shields and uproot trees.",
-                    1, 15, 2, 2
+                    "Bicorn", """
+                              "The Two-Horned Wardens of the Wilds."
+                              Bicorns are massive, bull-like beasts with thick, corded muscle and a low, powerful stance built for 
+                              unstoppable charges. They are distinguished by their pair of forward-curving horns, polished smooth from 
+                              constant combat and territorial clashes. Their hides are dense and leathery, often scarred from battles. 
+                              When provoked, a bicorn\u2019s charge can shatter shields and uproot trees.""",
+                    1, 1, 1, 1, 1, 1
             ),
             new Enemy(
-                    "Yale",
-                    "\"The Shadow-Maned Hunters of the High Slopes.\"\n"
-                    + "Yales are powerful, goat- or antelope-like beasts with compact, muscular bodies and dense coats suited for "
-                    + "cold, mountainous terrain. Their most striking feature is a pair of large, swiveling horns capable of rotating "
-                    + "independently, making ambush nearly impossible. Cunning and relentless, they pursue intruders across cliffs "
-                    + "and narrow ledges.",
-                    1, 10, 1, 3
+                    "Yale", """
+                            "The Shadow-Maned Hunters of the High Slopes."
+                            Yales are powerful, goat- or antelope-like beasts with compact, muscular bodies and dense coats suited for 
+                            cold, mountainous terrain. Their most striking feature is a pair of large, swiveling horns capable of rotating 
+                            independently, making ambush nearly impossible. Cunning and relentless, they pursue intruders across cliffs 
+                            and narrow ledges.""",
+                    1, 1, 1, 1, 1, 1
             ),
             new Enemy(
-                    "Wyvern",
-                    "\"The Venom-Winged Terrors of the Sky.\"\n"
-                    + "Wyverns are ferocious, two-legged drakes with vast, leathery wings that double as forelimbs. Their lean but "
-                    + "powerful bodies are built for speed and aerial dominance, with long, barbed tails often ending in a venomous "
-                    + "stinger. Though lacking the cunning of true dragons, their raw aggression makes them a nightmare for travelers.",
-                    1, 20, 4, 4
+                    "Wyvern", """
+                              "The Venom-Winged Terrors of the Sky."
+                              Wyverns are ferocious, two-legged drakes with vast, leathery wings that double as forelimbs. Their lean but 
+                              powerful bodies are built for speed and aerial dominance, with long, barbed tails often ending in a venomous 
+                              stinger. Though lacking the cunning of true dragons, their raw aggression makes them a nightmare for travelers.""",
+                    1, 1, 1, 1, 1, 1
             )
     ));
 
@@ -1580,26 +1627,8 @@ class SaveEnemyData implements Serializable {
 class BeastLog implements Serializable {
 
     Enemy enemy;
-    String description;
 
     public BeastLog(Enemy enemy) {
         this.enemy = enemy;
-        switch (enemy.name.toLowerCase()) {
-            case "ogre" -> {
-                this.description = "";
-            }
-            case "crocotta" -> {
-                this.description = "";
-            }
-            case "bicorn" -> {
-                this.description = "";
-            }
-            case "yale" -> {
-                this.description = "";
-            }
-            case "wyvern" -> {
-                this.description = "";
-            }
-        }
     }
 }
