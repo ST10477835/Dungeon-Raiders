@@ -28,8 +28,8 @@ The game makes use of layered probability mechanics in controlling the outcomes 
 You have encountered an enemy!
 
 **New Beast Log Made**
-**BigSmokes** | **Yale**
-Level 1 | Level 1
+**BigSmokes** : 10 | **Yale** : 10
+Level : 1 | Level 1
 
 ---
 
