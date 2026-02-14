@@ -96,4 +96,18 @@ javac rpg_game/RPG_GAME.java
 # Run (note the package-qualified name)
 java rpg_game.RPG_GAME
 ```
+### Run in NetBeans (or any IDE)
 
+1. Create/open a Java project and ensure the **package** is `rpg_game`.  
+2. Place `RPG_GAME.java` under `src/rpg_game/`.  
+3. Set `RPG_GAME` as the **Main Class**.  
+4. Click **Run**.
+
+Project Structure
+
+> This project is a single-file implementation containing multiple top-level classes in one source file.
+```sql
+src/
+└── rpg_game/
+    └── RPG_GAME.java   # Contains: RPG_GAME (main), Character (abstract), Enemy, Player
+```
