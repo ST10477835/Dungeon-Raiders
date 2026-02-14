@@ -6,6 +6,17 @@ Dungeon Raiders is a text based rpg adventure game that requires players to play
 
 ---
 
+# Features 
+
+- **Turn-based combat**: Attack, use Potions, or Escape.  
+- **Critical hits**: 10% chance (or guaranteed after an enemy fails a heal).  
+- **Enemy AI**: Attacks (with a chance to miss attack), and uses special potions.  
+- **Text health bars** for you and the enemy (0–10 blocks).  
+- **Level ups**: Gain experience points, coins and special loot after each victory.  
+- **Replay loop**: Play again without restarting the app.
+- **Local Game Saving**: Game allows users to save individual save files to their local device and access it whenever they start a new game
+---
+
 # Gameplay
 
 The game makes use of layered probability mechanics in controlling the outcomes of countless actions. Will you encounter an enemy? Will the chest you decide to open be a mimic? By adding this layer of unpredictability, this makes each playthrough unique.
@@ -111,3 +122,10 @@ src/
 └── rpg_game/
     └── RPG_GAME.java   # Contains: RPG_GAME (main), Character (abstract), Enemy, Player
 ```
+
+# Future Improvements
+
+- **Potion variety and function**: Adding a wider variety of potions with varying potion effects and use constraints depending on which enemy the player is facing.
+- **Online Account Saves**:  Give players the choice to store game saves in a global database so they can access their saves from any device.
+- **Weapon effects**: Adding more weapons that have individual attributes to add a layer of complexity to player build decisions.
+- **Skill trees**: Players can use tokens to unlock special effects while fighting.
