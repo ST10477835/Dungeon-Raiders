@@ -24,19 +24,21 @@ The game makes use of layered probability mechanics in controlling the outcomes 
 ## Example Combat
 
 
-You have encountered an enemy.
-New Beast Log Made.
-============================================================
-BigSmokes: [==========]          Yale: [==========]
-Level: 1                         Level: 1
-============================================================
-1. Attack
-2. Use Potion
-3. Escape
-4. Display Stats
-5. Check Beastiary
-============================================================
->>>
+### **Battle Encounter**
+You have encountered an enemy!
+
+**New Beast Log Made**
+**BigSmokes** | **Yale**
+Level 1 | Level 1
+
+---
+
+#### **Actions**
+1. **Attack**
+2. **Use Potion**
+3. **Escape**
+4. **Display Stats**
+5. **Check Beastiary**
 
 ---
 
