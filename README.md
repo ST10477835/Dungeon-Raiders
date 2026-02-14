@@ -23,7 +23,18 @@ The game makes use of layered probability mechanics in controlling the outcomes 
 
 ## Example Combat
 
+### **Main Menu**
 
+```
+What would you like to do?
+============================================================
+1. Enter Shop
+2. Enter Dungeon
+3. Enter Player Options
+4. Leave Game
+============================================================
+>>>
+```
 ### **Battle Encounter**
 
 ```
@@ -42,6 +53,30 @@ Level: 0                         Level: 0
 >>>
 ```
 
+### **Inside Shop**
+
+```
+Which weapon would you like to checkout?
+============================================================
+1. World Ender
+2. Steel Nail
+3. Mage's Staff
+4. <--Back
+============================================================
+>>>
+```
+---
+
+```
+Which potion would you like to purchase?
+============================================================
+1. Regeneration
+2. Attack
+3. Defense
+4. <--Back
+============================================================
+>>>
+```
 
 ---
 
