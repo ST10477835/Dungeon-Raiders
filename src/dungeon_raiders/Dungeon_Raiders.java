@@ -48,15 +48,20 @@ class Game {
     public static final String ANSI_WHITE = "\u001B[37m";
 
     Scanner scanner = new Scanner(System.in);
-    SavePlayerData playerData = new SavePlayerData();
-    SaveEnemyData enemyData = new SaveEnemyData();
+    SaveData saveData = new SaveData();
     String playerFileName = "game_save.bin";
 
     String folderPath = "C:\\Users\\abule\\OneDrive\\Documents\\NetBeansProjects\\Dungeon_Raiders";
+
     File folder = new File(folderPath);
     File[] uniFiles = folder.listFiles();
     ArrayList<File> files = new ArrayList<>();
 
+    String gameSaveFolderPath = "C:\\Users\\abule\\OneDrive\\Documents\\NetBeansProjects\\Dungeon_Raiders\\game_saves";
+    File gameSaveFolder = new File(gameSaveFolderPath);
+    File[] gameSaveFiles = gameSaveFolder.listFiles();
+
+    boolean inLeaveGame = true;
     boolean isRunning = true;
     boolean canEscape = true;
     boolean isFighting = false;
@@ -94,14 +99,15 @@ class Game {
     double magicMultiplier;
 
     Player player = new Player("Abu");
+    Enemies enemies;
+    Shop shop;
+
+    //current variables not dictated by previous game itterations
     Enemy enemy;
     Dungeon dungeon;
 
-    ArrayList<Weapon> shopWeaponInventory = new ArrayList<>(Arrays.asList(new Weapon("World Ender", 10, 2), new Weapon("Steel Nail", 10, 2), new Weapon("Mage's Staff", 10, 2)));
-    ArrayList<Potion> shopPotionInventory = new ArrayList<>(Arrays.asList(new Potion("Regeneration", 1, 5, "heal"), new Potion("Attack", 1, 5, "atkBuff"), new Potion("Defense", 1, 5, "defBuff")));
-
-    ArrayList<Enemy> enemies = new SaveEnemyData().enemies;
-
+    /*ArrayList<Weapon> weaponInventory = new ArrayList<>(Arrays.asList(new Weapon("World Ender", 10, 1, 1), new Weapon("Steel Nail", 10, 1, 1), new Weapon("Mage's Staff", 10, 1, 1)));
+    ArrayList<Potion> potionInventory = new ArrayList<>(Arrays.asList(new Potion("Regeneration", 1, 5, "heal"), new Potion("Attack", 1, 5, "atkBuff"), new Potion("Defense", 1, 5, "defBuff")));*/
     public Game() {
 
         for (File file : uniFiles) {
@@ -133,7 +139,7 @@ class Game {
                 newGame();
             }
             case 2 -> {
-                loadSave();
+                loadGame();
             }
             case 3 -> {
                 isRunning = false;
@@ -147,55 +153,72 @@ class Game {
 
     public void newGame() {
         createPlayer();
+        createEnemies();
+        createShop();
         inMenu = true;
         menu();
     }
 
-    public void loadSave() {
-        if (files != null) {
-            System.out.println("Which save would you like to open: \n" + "=".repeat(60));
-            int count = 0;
+    public void createEnemies() {
+        enemies = new Enemies();
+        System.out.println("Enemies List Created.");
+    }
 
-            for (File file : files) {//Prints out .bin files in game directory
-                if (file.isFile() && file.getName().endsWith(".bin")) {
+    public void createShop() {
+        shop = new Shop();
+        System.out.println("Shop created.");
+    }
+
+    public void loadGame() {
+        if (gameSaveFiles != null) {
+            boolean inLoadGame = true;
+            while (inLoadGame) {
+                System.out.println("which save file would you like to open: \n" + "=".repeat(60));
+                int count = 0;
+
+                for (File file : gameSaveFiles) {
                     count++;
-                    System.out.println(count + ". " + file.getName());
+                    System.out.println(count + ". " + file.getName().substring(0, file.getName().length() - 4));
                 }
-            }
-            count++;
-            System.out.println(count + ". <-- Back");
-
-            System.out.print("=".repeat(60) + "\n" + ">>>");
-            int ans = scanner.nextInt();
-            delay(800);
-
-            if (ans > 0 && ans <= files.size()) {
-                System.out.println("You have opened " + files.get(ans - 1).getName());
-                player = loadPlayer(files.get(ans - 1).getName());
-
-                System.out.println("Welcome back " + player.name + ". Here are your current stats:");
-                displayPlayerStats();
+                count++;
+                System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
                 delay(800);
 
-                inMenu = true;
-                menu();
-            }
+                if (ans >= 0 && ans < gameSaveFiles.length) {
+                    File file = gameSaveFiles[ans - 1];
+                    System.out.println("You have chosen " + file.getName().substring(0, file.getName().length() - 4));
+                    System.out.println("No transfer happened yet");
 
-        } else {
-            System.out.println("Directory does not exist or is not a folder.");
+                    player = loadPlayer(file.getName());
+                    enemies = loadEnemies(file.getName());
+                    shop = loadShop(file.getName());
+
+                    inLoadGame = false;
+                    inMenu = true;
+                    menu();
+
+                } else if (ans == count) {
+                    inLoadGame = false;
+                } else {
+                    System.out.println("Invalid Input.");
+                }
+                delay(800);
+            }
         }
 
     }
 
     public void createEnemy() {
-        enemy = enemies.get((int) Math.floor(Math.random() * enemies.size()));
+        enemy = enemies.enemies.get((int) Math.floor(Math.random() * enemies.enemies.size()));
         enemySetStats();
     }
 
     public void showWeaponStats(Weapon weapon) {
         textBox("Name: " + weapon.name
                 + "\nDurability: " + weapon.durability
-                + "\nDamage: " + weapon.dmg
+                + "\nPhysical Damage: " + weapon.currentPhysicalAttack
+                + "\nMagical Damage: " + weapon.currentMagicalAttack
                 + "\nCurrent Price: " + weapon.price);
     }
 
@@ -238,7 +261,7 @@ class Game {
                     playerOptions();
                 }
                 case 4 -> {
-                    saveGame();
+                    leaveGame();
                     inMenu = false;
                     isRunning = false;
                 }
@@ -341,7 +364,7 @@ class Game {
         while (inBuyWeapon) {
             int count = 0;
             textBox("Which weapon would you like to checkout?");
-            for (dungeon_raiders.Weapon weapon : shopWeaponInventory) {
+            for (dungeon_raiders.Weapon weapon : shop.weaponInventory) {
                 count++;
                 System.out.println(count + ". " + weapon.name);
             }
@@ -351,9 +374,8 @@ class Game {
             int ans = scanner.nextInt();
             delay(800);
 
-            if (ans >= 0 && ans < shopWeaponInventory.size()) {
-
-                Weapon weapon = shopWeaponInventory.get(ans - 1);
+            if (ans >= 0 && ans < shop.weaponInventory.size()) {
+                Weapon weapon = shop.weaponInventory.get(ans - 1);
                 showWeaponStats(weapon);
                 System.out.println("""
                                    1. Purchase Weapon
@@ -370,7 +392,7 @@ class Game {
                         player.playerWeaponInventory.add(weapon);
                         //weapon added to inventory
 
-                        shopWeaponInventory.remove(weapon);
+                        shop.weaponInventory.remove(weapon);
                         //weapon removed from inventory
 
                         System.out.println("You have purchased: " + weapon.name + "\n-" + weapon.price + " coins");
@@ -396,7 +418,7 @@ class Game {
         while (inBuyPotion) {
             int count = 0;
             textBox("Which potion would you like to purchase?");
-            for (Potion potion : shopPotionInventory) {
+            for (Potion potion : shop.potionInventory) {
                 count++;
                 System.out.println(count + ". " + potion.name);
             }
@@ -405,9 +427,9 @@ class Game {
             int ans = scanner.nextInt();
             delay(800);
 
-            if (ans >= 0 && ans < shopPotionInventory.size()) {
+            if (ans >= 0 && ans < shop.potionInventory.size()) {
 
-                Potion potion = shopPotionInventory.get(ans - 1);
+                Potion potion = shop.potionInventory.get(ans - 1);
                 if (potion.price <= player.coins) {
                     player.coins -= potion.price;
                     // potion price coins deducted from player account
@@ -415,7 +437,7 @@ class Game {
                     player.playerPotionInventory.add(potion);
                     //potion added to player inventory
 
-                    shopPotionInventory.remove(potion);
+                    shop.potionInventory.remove(potion);
                     //potion removed from the shops inventory
 
                     System.out.println("You have purchased: " + potion.name + "\n-" + potion.price + " coins");
@@ -510,6 +532,7 @@ class Game {
     public void autoEquipWeapon() {
         if (player.currentWeapon == null) {
             player.currentWeapon = player.playerWeaponInventory.get(0);
+            weaponSetStats();
             player.playerWeaponInventory.remove(0);
             System.out.println(player.currentWeapon.name + " automatically equiped.");
         }
@@ -682,7 +705,7 @@ class Game {
     }
 
     public void enemyAttack() {
-        double DMG = enemy.atk - defenseMultiplier(player.currentDefense);
+        double DMG = enemy.currentPhysicalAttack + enemy.currentMagicalAttack - defenseMultiplier(player.currentDefense);
 
         if (!enemyMiss()) {
             player.hp -= DMG;
@@ -903,8 +926,7 @@ class Game {
             textBox("""
                     1. Weapons
                     2. Potions
-                    3. <--Back
-                    """);
+                    3. <--Back""");
             System.out.print(">>>");
             scanner.nextLine();
             int ans = scanner.nextInt();
@@ -962,6 +984,8 @@ class Game {
                             //current weapon added to inventory
                             player.currentWeapon = weapon;
                             //player equipped chose weapon
+
+                            weaponSetStats();
                         } else if (option == 2) {
                             inWeaponOption = false;
                         }
@@ -1107,79 +1131,190 @@ class Game {
         }
     }
 
-    public void saveGame() {
-        System.out.println("Would you like to save the game? (y/n)");
-        System.out.print(">>>");
-        String choice = scanner.next();
-        delay(800);
-        switch (choice) {
-            case "y" -> {
+    //---------------------------------------GAME SAVE METHODS---------------------------------------------
+    public void leaveGame() {
+        while (inLeaveGame) {
+            System.out.print("Would you like to save the game? (y/n)\n>>>");
+            String ans = scanner.next();
+            delay(800);
 
-                if (files != null) {
-                    System.out.println("Which file would you like to save into: \n" + "=".repeat(60));
-                    int count = 0;
-                    System.out.println("=".repeat(60));
-                    for (File file : files) {
-                        if (file.isFile() && file.getName().endsWith(".bin")) {
-                            count++;
-                            System.out.println(count + ". " + file.getName());
-                        }
-                    }
-                    count++;
-                    System.out.println(count + ". Create new save");
-                    System.out.print(">>>");
-                    int ans = scanner.nextInt();
-                    delay(800);
-                    if (ans == count) {
-                        System.out.println("Type in new file save name.");
-                        System.out.print(">>>");
-                        String fileName = scanner.next();
-                        if (!fileName.endsWith(".bin")) {
-                            fileName += ".bin";
-                        }
-                        playerData.player = player;
-                        try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(fileName))) {
-                            os.writeObject(playerData);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    if (ans > 0 && ans <= files.size()) {
-                        System.out.println("running");
-                        playerData.player = player;
-                        try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(files.get(ans - 1).getName()))) {
-                            os.writeObject(playerData);
-                            System.out.println("Data saved to " + files.get(ans - 1).getName());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+            switch (ans) {
+                case "y" -> {
+                    saveGame();
                 }
-
-            }
-            case "n" -> {
-                System.out.println("Leaving Game...");
-            }
-            default -> {
-                System.out.println("Incorrect input.");
+                case "n" -> {
+                    inLeaveGame = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
             }
         }
-        delay(800);
+        System.out.println("Leaving Game...");
+        System.exit(0);
+    }
+
+    public void saveGame() {
+        boolean inSaveGame = true;
+        while (inSaveGame) {
+            System.out.println("""
+                                Would you like to:
+                                1. Save into existing save file
+                                2. Create new save file
+                                3. Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+
+            switch (ans) {
+                case 1 -> {
+                    inSaveGame = !saveExistingGameFile();
+                }
+                case 2 -> {
+                    inSaveGame = !saveNewGameFile();
+                }
+                case 3 -> {
+                    inSaveGame = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public boolean saveExistingGameFile() {
+        boolean inSaveExistingGameFile = true;
+        while (inSaveExistingGameFile) {
+            if (gameSaveFiles != null) {
+                System.out.println("Which file would you like to save into: \n" + "=".repeat(60));
+                int count = 0;
+                System.out.println("=".repeat(60));
+                for (File file : gameSaveFiles) {
+                    if (file.isFile() && file.getName().endsWith(".bin")) {
+                        count++;
+                        System.out.println(count + ". " + file.getName());
+                    }
+                }
+                count++;
+                System.out.print(count + ". <--Back\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+
+                if (ans >= 0 && ans < gameSaveFiles.length) {
+                    //creating save data template for saving into game files
+                    saveData.player = player;
+                    saveData.enemies = enemies;
+                    saveData.shop = shop;
+
+                    File file = gameSaveFiles[ans - 1];
+
+                    try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(file.getName()))) {
+                        os.writeObject(saveData);
+                        System.out.println("Data saved to " + file.getName().substring(0, file.getName().length() - 4));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.out.println("Existing game save issue.");
+                        System.exit(0);
+                    }
+                } else if (ans == count) {
+                    inSaveExistingGameFile = false;
+                    return false;
+                }
+
+            } else {
+                System.out.println("You have no existing save files.");
+                inSaveExistingGameFile = false;
+                return false;//save didnt go through
+            }
+        }
+        inLeaveGame = false;
+        return true;//if all saving code went through without a problem
+    }
+
+    public boolean gameFileNameChecker(String fileName) {
+        boolean found = false;
+        for (File file : gameSaveFiles) {
+            if (file.getName().equals(fileName)) {
+                found = true;
+                break; // Exit the loop as soon as a match is found for efficiency
+            }
+        }
+
+        return found;
+    }
+
+    public boolean saveNewGameFile() {
+        boolean inSaveNewGameFile = true;
+        while (inSaveNewGameFile) {
+            System.out.print("Type in new file save name.\n>>>");
+            String fileName = scanner.next();
+            fileName = gameSaveFolderPath + "\\" + fileName;
+            delay(800);
+
+            if (gameFileNameChecker(fileName)) {
+                continue;
+            }
+
+            if (!fileName.endsWith(".bin")) {
+                fileName += ".bin";
+            }
+
+            saveData.player = player;
+            saveData.enemies = enemies;
+            saveData.shop = shop;
+
+            try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(fileName))) {
+                os.writeObject(saveData);
+                inSaveNewGameFile = false;
+                System.out.println("successfully saved.");
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("New Game save issue");
+                System.exit(0);
+            }
+        }
+        inLeaveGame = false;
+        return true;
     }
 
     public Player loadPlayer(String fileName) {
         try (ObjectInputStream is
                 = new ObjectInputStream(new FileInputStream(fileName))) {
 
-            SavePlayerData data = (SavePlayerData) is.readObject();
+            SaveData data = (SaveData) is.readObject();
             return data.player;
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+            System.out.println("load player error");
             return null;
         }
     }
 
+    public Shop loadShop(String fileName) {
+        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream(fileName))) {
+            SaveData data = (SaveData) is.readObject();
+            return data.shop;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("load shop error");
+            return null;
+        }
+    }
+
+    public Enemies loadEnemies(String fileName) {
+        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream(fileName))) {
+            SaveData data = (SaveData) is.readObject();
+            return data.enemies;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("load enemies error");
+            return null;
+        }
+    }
+
+    //-----------------------------------------------------------------------------------------------------
     public void usePotion(int ans) {
         Potion potion = player.playerPotionInventory.get(ans - 1);
         System.out.println("You have seleted " + potion.name);
@@ -1199,7 +1334,7 @@ class Game {
         player.coins += coinDrop;
         System.out.println("- " + coinDrop + " coins");
         if (probability < 0.15 + (0.1 * player.luc)) {
-            Weapon weapon = new Weapon("Random tool", 10, 1);
+            Weapon weapon = new Weapon("Random tool", 10, 1, 1);
             player.playerWeaponInventory.add(weapon);
             System.out.println("- " + weapon.name);
         }
@@ -1228,32 +1363,11 @@ class Game {
         return Math.random() > 0.5;//50% chance to encounter an enemy
     }
 
-    //---------------------------------------ENEMY BASED METHODS-----------------------------------------------------------
-    public void fetchEnemyList() {
-        try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream("enemies.bin"))) {
-            os.writeObject(enemyData);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public ArrayList<Enemy> loadEnemyData() {
-        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream("enemies.bin"))) {
-            SaveEnemyData data = (SaveEnemyData) is.readObject();
-            System.out.println("Enemy List found.");
-            return data.enemies;
-
-        } catch (IOException | ClassNotFoundException e) {
-            System.out.println("Enemy List not found.");
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     //---------------------------------------PLAYER BASED METHODS----------------------------------------------------------
     public void createPlayer() {
         System.out.print("What is your name: ");
         String name = scanner.next();
+        scanner.nextLine();
         System.out.println("What is your role: ");
         textBox("1. Mage \n2. Gish \n3. Knight \n4. Barbarian");
         System.out.print(">>>");
@@ -1343,8 +1457,9 @@ class Game {
             System.out.println(i + ", " + player.currentDefense);
         }
     }
-    public void enemySetStats(){
-         for (int i = 1; i <= enemy.STR; i++) {
+
+    public void enemySetStats() {
+        for (int i = 1; i <= enemy.STR; i++) {
             enemy.currentPhysicalAttack += setGainDecrease(i);
             System.out.println(i + ", " + enemy.currentPhysicalAttack);
         }
@@ -1364,7 +1479,18 @@ class Game {
             enemy.currentDefense += setGainDecrease(i);
             System.out.println(i + ", " + enemy.currentDefense);
         }
-        
+
+    }
+
+    public void weaponSetStats() {
+        for (int i = 1; i <= player.currentWeapon.STR; i++) {
+            player.currentWeapon.currentPhysicalAttack += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentWeapon.currentPhysicalAttack);
+        }
+        for (int i = 1; i <= player.currentWeapon.INT; i++) {
+            player.currentWeapon.currentMagicalAttack += setGainDecrease(i);
+            System.out.println(i + ", " + player.currentWeapon.currentMagicalAttack);
+        }
     }
 
     public void levelUp() {
@@ -1425,7 +1551,7 @@ class Player implements Serializable {
     int currentMagicalAttack = 0;//intGain()
     int currentLuck = 0;//luckGain()
 
-    Weapon currentWeapon = new Weapon("Fists", 0, 1);
+    Weapon currentWeapon = new Weapon("Fists", 0, 1, 1);
 
     int expGauge = 0;
     int hp = 10;
@@ -1450,7 +1576,7 @@ class Player implements Serializable {
     }
 }
 
-class Role {
+class Role implements Serializable {
 
     String type;
 
@@ -1473,27 +1599,27 @@ class Enemy implements Serializable {
 
     String name;
     String description;
-    
+
     int level = 0;
-    
+
     int VIT = 1;
     int DEF = 1;
     int STR = 1;
     int INT = 1;
     int LUC = 1;
-    
+
     int maxHealth = 0;
     int currentHealth = maxHealth;
     int currentDefense = 0;
     int currentPhysicalAttack = 0;//strGain()
     int currentMagicalAttack = 0;//intGain()
     int currentLuck = 0;//luckGain()
-    
+
     int lvl;
     int hp;
     int atk;
     int def;
-    
+
     public Enemy(String name, String description, int level, int VIT, int DEF, int STR, int INT, int LUC) {
         this.name = name;
         this.description = description;
@@ -1554,25 +1680,30 @@ class Weapon implements Serializable {
     String name;
     int durability = 10;
     int price;
-    int dmg;
 
-    int currentPhysicalAttack;
-    int currentMagicalAttack;
+    int STR;
+    int INT;
+
+    int currentPhysicalAttack = 0;
+    int currentMagicalAttack = 0;
 
     //the less durability an item has the less its market value would be
-    public Weapon(String name, int price, int dmg) {
+    public Weapon(String name, int price, int STR, int INT) {
         this.name = name;
         this.price = price;
-        this.dmg = dmg;
+        this.STR = STR;
+        this.INT = INT;
     }
 }
 
-class SavePlayerData implements Serializable {
+class SaveData implements Serializable {
 
     Player player;
+    Enemies enemies;
+    Shop shop;
 }
 
-class SaveEnemyData implements Serializable {
+class Enemies implements Serializable {
 
     ArrayList<Enemy> enemies = new ArrayList<>(Arrays.asList(
             new Enemy(
@@ -1631,4 +1762,10 @@ class BeastLog implements Serializable {
     public BeastLog(Enemy enemy) {
         this.enemy = enemy;
     }
+}
+
+class Shop implements Serializable {
+
+    ArrayList<Weapon> weaponInventory = new ArrayList<>(Arrays.asList(new Weapon("World Ender", 10, 1, 1), new Weapon("Steel Nail", 10, 1, 1), new Weapon("Mage's Staff", 10, 1, 1)));
+    ArrayList<Potion> potionInventory = new ArrayList<>(Arrays.asList(new Potion("Regeneration", 1, 5, "heal"), new Potion("Attack", 1, 5, "atkBuff"), new Potion("Defense", 1, 5, "defBuff")));
 }
