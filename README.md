@@ -6,6 +6,40 @@ Dungeon Raiders is a text based rpg adventure game that requires players to play
 
 ---
 
+# Gameplay
+
+The game makes use of layered probability mechanics in controlling the outcomes of countless actions. Will you encounter an enemy? Will the chest you decide to open be a mimic? By adding this layer of unpredictability, this makes each playthrough unique.
+
+---
+
+## Probability rates
+
+| Action | Probability % |
+| --- | --- |
+| Finding Chest | **10 %** (Affected by player luck stat) |
+| Loot being hidden mimic | **35 %** |
+| Encountering an Enemy | **30 %** |
+| Finding next floor stairs | **25 %** (100% after reaching max pity)|
+
+## Example Combat
+
+
+You have encountered an enemy.
+New Beast Log Made.
+============================================================
+BigSmokes: [==========]          Yale: [==========]
+Level: 1                         Level: 1
+============================================================
+1. Attack
+2. Use Potion
+3. Escape
+4. Display Stats
+5. Check Beastiary
+============================================================
+>>>
+
+---
+
 ## Prerequisites
 
 - Java 17+ (works with most modern JDKs/IDEs)
@@ -23,17 +57,3 @@ javac rpg_game/RPG_GAME.java
 java rpg_game.RPG_GAME
 ```
 
-# Gameplay
-
-The game makes use of layered probability mechanics in controlling the outcomes of countless actions. Will you encounter an enemy? Will the chest you decide to open be a mimic? By adding this layer of unpredictability, this makes each playthrough unique.
-
----
-
-## Probability rates
-
-| Action | Probability % |
-| --- | --- |
-| Finding Chest | **10 %** (Affected by player luck stat) |
-| Loot being hidden mimic | **35 %** |
-| Encountering an Enemy | **30 %** |
-| Finding next floor stairs | **25 %** (100% after reaching max pity)|
