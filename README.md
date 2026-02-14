@@ -25,10 +25,10 @@ The game makes use of layered probability mechanics in controlling the outcomes 
 
 
 ### **Battle Encounter**
-You have encountered an enemy!
+You have encountered an enemy!  
 
-**New Beast Log Made**
-**BigSmokes** : 10 | **Yale** : 10
+**New Beast Log Made**  
+**BigSmokes** : 10 | **Yale** : 10  
 Level : 1 | Level 1
 
 ---
