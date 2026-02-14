@@ -26,11 +26,12 @@ The game makes use of layered probability mechanics in controlling the outcomes 
 
 ### **Battle Encounter**
 
-``You have encountered an enemy.
+```
+You have encountered an enemy.
 New Beast Log Made.
 ============================================================
-BigSmokes: [==========]          Yale: [                    ]
-Level: 0                   Level: 0
+BigSmokes: [==========]          Yale: [==========]
+Level: 0                         Level: 0
 ============================================================
 1. Attack
 2. Use Potion
@@ -38,7 +39,9 @@ Level: 0                   Level: 0
 4. Display Stats
 5. Check Beastiary
 ============================================================
->>>``
+>>>
+```
+
 
 ---
 
