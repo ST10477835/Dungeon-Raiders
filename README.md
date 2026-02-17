@@ -6,6 +6,91 @@ Dungeon Raiders is a text based rpg adventure game that requires players to play
 
 ---
 
+# Features 
+
+- **Turn-based combat**: Attack, use Potions, or Escape.  
+- **Critical hits**: 10% chance (or guaranteed after an enemy fails a heal).  
+- **Enemy AI**: Attacks (with a chance to miss attack), and uses special potions.  
+- **Text health bars** for you and the enemy (0–10 blocks).  
+- **Level ups**: Gain experience points, coins and special loot after each victory.  
+- **Replay loop**: Play again without restarting the app.
+- **Local Game Saving**: Game allows users to save individual save files to their local device and access it whenever they start a new game
+---
+
+# Gameplay
+
+The game makes use of layered probability mechanics in controlling the outcomes of countless actions. Will you encounter an enemy? Will the chest you decide to open be a mimic? By adding this layer of unpredictability, this makes each playthrough unique.
+
+---
+
+## Probability rates
+
+| Action | Probability % |
+| --- | --- |
+| Finding Chest | **10 %** (Affected by player luck stat) |
+| Loot being hidden mimic | **35 %** |
+| Encountering an Enemy | **30 %** |
+| Finding next floor stairs | **25 %** (100% after reaching max pity)|
+
+## Example Combat
+
+### **Main Menu**
+
+```
+What would you like to do?
+============================================================
+1. Enter Shop
+2. Enter Dungeon
+3. Enter Player Options
+4. Leave Game
+============================================================
+>>>
+```
+### **Battle Encounter**
+
+```
+You have encountered an enemy.
+New Beast Log Made.
+============================================================
+BigSmokes: [==========]          Yale: [==========]
+Level: 0                         Level: 0
+============================================================
+1. Attack
+2. Use Potion
+3. Escape
+4. Display Stats
+5. Check Beastiary
+============================================================
+>>>
+```
+
+### **Inside Shop**
+
+```
+Which weapon would you like to checkout?
+============================================================
+1. World Ender
+2. Steel Nail
+3. Mage's Staff
+4. <--Back
+============================================================
+>>>
+```
+---
+
+```
+Which potion would you like to purchase?
+============================================================
+1. Regeneration
+2. Attack
+3. Defense
+4. <--Back
+============================================================
+>>>
+```
+
+---
+
 ## Prerequisites
 
 - Java 17+ (works with most modern JDKs/IDEs)
@@ -22,18 +107,25 @@ javac rpg_game/RPG_GAME.java
 # Run (note the package-qualified name)
 java rpg_game.RPG_GAME
 ```
+### Run in NetBeans (or any IDE)
 
-# Gameplay
+1. Create/open a Java project and ensure the **package** is `rpg_game`.  
+2. Place `RPG_GAME.java` under `src/rpg_game/`.  
+3. Set `RPG_GAME` as the **Main Class**.  
+4. Click **Run**.
 
-The game makes use of layered probability mechanics in controlling the outcomes of countless actions. Will you encounter an enemy? Will the chest you decide to open be a mimic? By adding this layer of unpredictability, this makes each playthrough unique.
+Project Structure
 
----
+> This project is a single-file implementation containing multiple top-level classes in one source file.
+```sql
+src/
+└── rpg_game/
+    └── RPG_GAME.java   # Contains: RPG_GAME (main), Character (abstract), Enemy, Player
+```
 
-## Probability rates
+# Future Improvements
 
-| Action | Probability % |
-| --- | --- |
-| Finding Chest | **10 %** (Affected by player luck stat) |
-| Loot being hidden mimic | **35 %** |
-| Encountering an Enemy | **30 %** |
-| Finding next floor stairs | **25 %** (100% after reaching max pity)|
+- **Potion variety and function**: Adding a wider variety of potions with varying potion effects and use constraints depending on which enemy the player is facing.
+- **Online Account Saves**:  Give players the choice to store game saves in a global database so they can access their saves from any device.
+- **Weapon effects**: Adding more weapons that have individual attributes to add a layer of complexity to player build decisions.
+- **Skill trees**: Players can use tokens to unlock special effects while fighting.
