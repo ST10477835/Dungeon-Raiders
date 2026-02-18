@@ -32,8 +32,9 @@ class Skill implements Serializable {
     String effect;
     int effectTracker = 0;
 
-    Skill(String name) {
+    Skill(String name, String rating) {
         this.name = name;
+        this.rating = rating; // e.g. HIGH, MEDIUM, LOW
     }
 
     public double damage(double playerBaseDamage, double weaponBaseDamage, String enemyWeakness) {
