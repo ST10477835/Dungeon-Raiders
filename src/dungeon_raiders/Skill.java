@@ -13,6 +13,7 @@ import java.io.Serializable;
 class Skill implements Serializable {
     
     String name;
+    
     /**
      * rating is linked to damage multipliers: low = 1.5 dm medium = 2.0 dm high
      * = 2.5 dm
@@ -32,9 +33,11 @@ class Skill implements Serializable {
     String effect;
     int effectTracker = 0;
 
-    Skill(String name, String rating) {
+    Skill(String name, String rating, String type, String effect) {
         this.name = name;
         this.rating = rating; // e.g. HIGH, MEDIUM, LOW
+        this.type = type; //attribute type
+        this.effect =  effect; //additional status effect
     }
 
     public double damage(double playerBaseDamage, double weaponBaseDamage, String enemyWeakness) {
