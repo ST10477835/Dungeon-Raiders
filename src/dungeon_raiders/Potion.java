@@ -10,7 +10,7 @@ import java.io.Serializable;
  *
  * @author Abulele
  */
-class Potion implements Serializable {
+public class Potion implements Serializable {
     
     String name;
     int statIncrease = 3; //hp increase effect for now

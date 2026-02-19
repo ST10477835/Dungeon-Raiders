@@ -11,7 +11,7 @@ import java.util.ArrayList;
  *
  * @author Abulele
  */
-class Weapon implements Serializable {
+public class Weapon implements Serializable {
     //Serializable lets weapon information get stored on game save binary files
 
     String name;

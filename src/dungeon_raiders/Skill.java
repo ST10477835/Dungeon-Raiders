@@ -10,7 +10,7 @@ import java.io.Serializable;
  *
  * @author Abulele
  */
-class Skill implements Serializable {
+public class Skill implements Serializable {
     
     String name;
     
@@ -42,23 +42,23 @@ class Skill implements Serializable {
 
     public double damage(double playerBaseDamage, double weaponBaseDamage, String enemyWeakness) {
         double additionalDamage = enemyWeakness.equals(type) ? 1.5 : 0; //damage multiplier if enemy weakness hit
-        double totalDamage = playerBaseDamage + weaponBaseDamage;
+        double primaryDamage = playerBaseDamage + weaponBaseDamage;
         switch (rating) {
             case "low" -> {
-                totalDamage *= dmgLow;
+                primaryDamage *= dmgLow;
             }
             case "medium" -> {
-                totalDamage *= dmgMed;
+                primaryDamage *= dmgMed;
             }
             case "high" -> {
-                totalDamage *= dmgHig;
+                primaryDamage *= dmgHig;
             }
             default -> {
                 System.out.println("Skill damage issue encountered.");
                 return 0;
             }
         }
-        return totalDamage + additionalDamage;
+        return primaryDamage + additionalDamage;
     }
 
     public void display() {

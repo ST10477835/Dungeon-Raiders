@@ -10,7 +10,7 @@ import java.io.Serializable;
  *
  * @author Abulele
  */
-class Role implements Serializable {
+public class Role implements Serializable {
     
     String type;
 

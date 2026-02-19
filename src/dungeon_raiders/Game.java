@@ -1,0 +1,1341 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package dungeon_raiders;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Scanner;
+
+/**
+ *
+ * @author Abulele
+ */
+class Game {
+    
+    Scanner scanner = new Scanner(System.in);
+    SaveData saveData = new SaveData();
+    String gameSaveFolderPath = "C:\\Users\\abule\\OneDrive\\Documents\\NetBeansProjects\\Dungeon_Raiders\\game_saves";
+    File gameSaveFolder = new File(gameSaveFolderPath);
+    File[] gameSaveFiles = gameSaveFolder.listFiles();
+    
+    boolean inLeaveGame = true;
+    boolean isRunning = true;
+    boolean inEnemyEncounter = false;
+    double physicalMultiplier;
+    double magicMultiplier;
+    
+    
+    Player player;
+    Enemies enemies;
+    Shop shop;
+    //current variables not dictated by previous game itterations
+    Enemy enemy;
+    Dungeon dungeon;
+
+    public Game() {
+        new Thread(() -> {
+            while (isRunning) {
+                startScreen();
+            }
+        }).start();
+    }
+
+    public void startScreen() {
+        textBox("""
+                Welcome to Dungeon Raiders
+                1. New Game
+                2. Load Game
+                3. Exit Game""");
+        System.out.print(">>>");
+        int ans = scanner.nextInt();
+        delay(800);
+        switch (ans) {
+            case 1 -> {
+                newGame();
+                setStats();
+            }
+            case 2 -> {
+                loadGame();
+                setStats();
+            }
+            case 3 -> {
+                isRunning = false;
+            }
+            default -> {
+                System.out.println("Invalid Input.");
+            }
+        }
+    }
+
+    public void newGame() {
+        createPlayer();
+        createEnemies();
+        createShop();
+        menu();
+    }
+
+    public void createEnemies() {
+        enemies = new Enemies();
+        System.out.println("Enemies List Created.");
+    }
+
+    public void createShop() {
+        shop = new Shop();
+        System.out.println("Shop created.");
+    }
+
+    public void loadGame() {
+        if (gameSaveFiles != null) {
+            boolean inLoadGame = true;
+            while (inLoadGame) {
+                System.out.println("which save file would you like to open: \n" + "=".repeat(60));
+                int count = 0;
+                for (File file : gameSaveFiles) {
+                    count++;
+                    System.out.println(count + ". " + file.getName().substring(0, file.getName().length() - 4));
+                }
+                count++;
+                System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                if (ans >= 0 && ans <= gameSaveFiles.length) {
+                    File file = gameSaveFiles[ans - 1];
+                    System.out.println("You have chosen " + file.getName().substring(0, file.getName().length() - 4));
+                    player = loadPlayer(file.getPath());
+                    enemies = loadEnemies(file.getPath());
+                    shop = loadShop(file.getPath());
+                    inLoadGame = false;
+                    menu();
+                } else if (ans == count) {
+                    inLoadGame = false;
+                } else {
+                    System.out.println("Invalid Input.");
+                }
+                delay(800);
+            }
+        } else {
+            newGame();
+        }
+    }
+
+    public void createEnemy() {
+        enemy = enemies.enemies.get((int) Math.floor(Math.random() * enemies.enemies.size()));
+        enemySetStats();
+    }
+
+    public void showWeaponStats(Weapon weapon) {
+        textBox("Name: " + weapon.name + "\nDurability: " + weapon.durability + "\nPhysical Damage: " + weapon.currentPhysicalAttack + "\nMagical Damage: " + weapon.currentMagicalAttack + "\nCurrent Price: " + weapon.price);
+    }
+
+    public void showPotionStats(Potion potion) {
+        textBox("Name: " + potion.name + "\nEffect: " + potion.effect + "\nLevel: " + potion.level + "\nPotency: " + potion.statIncrease + "\nPrice: " + potion.price);
+    }
+
+    public void textBox(String text) {
+        System.out.println("=".repeat(60));
+        System.out.println(text);
+        System.out.println("=".repeat(60));
+    }
+
+    public void menu() {
+        boolean inMenu = true;
+        while (inMenu) {
+            System.out.println("What would you like to do?");
+            textBox("""
+                1. Enter Shop
+                2. Enter Dungeon
+                3. Enter Player Options
+                4. Leave Game""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    shop();
+                }
+                case 2 -> {
+                    dungeon();
+                }
+                case 3 -> {
+                    playerOptions();
+                }
+                case 4 -> {
+                    leaveGame();
+                    inMenu = false;
+                    isRunning = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    //-------------------------------------------SHOP OPTIONS-------------------------------------------------------
+    public void shop() {
+        boolean inShop = true;
+        while (inShop) {
+            System.out.println("What would you like to purchase?");
+            textBox("""
+                    1. Weapons
+                    2. Potions
+                    3. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    weaponSection();
+                }
+                case 2 -> {
+                    potionSection();
+                }
+                case 3 -> {
+                    System.out.println("Leaving Store...");
+                    inShop = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public void weaponSection() {
+        boolean inWeaponSection = true;
+        while (inWeaponSection) {
+            textBox("coins: " + player.coins + "\n" + "-".repeat(60) + "\n" + """
+                1. Buy Weapon
+                2. Sell Weapon
+                3. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    buyWeapon();
+                }
+                case 2 -> {
+                    sellWeapon();
+                }
+                case 3 -> {
+                    inWeaponSection = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public void potionSection() {
+        boolean inPotionSection = true;
+        while (inPotionSection) {
+            textBox("coins: " + player.coins + "\n" + "-".repeat(60) + "\n" + """
+                1. Buy Potion
+                2. Sell Potion
+                3. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    buyPotion();
+                }
+                case 2 -> {
+                    sellPotion();
+                }
+                case 3 -> {
+                    inPotionSection = false;
+                }
+                default -> {
+                }
+            }
+        }
+    }
+
+    public void buyWeapon() {
+        boolean inBuyWeapon = true;
+        while (inBuyWeapon) {
+            int count = 0;
+            textBox("Which weapon would you like to checkout?");
+            for (Weapon weapon : shop.weaponInventory) {
+                count++;
+                System.out.println(count + ". " + weapon.name);
+            }
+            count++;
+            System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            if (ans >= 0 && ans <= shop.weaponInventory.size()) {
+                Weapon weapon = shop.weaponInventory.get(ans - 1);
+                showWeaponStats(weapon);
+                System.out.println("""
+                                   1. Purchase Weapon
+                                   2. <--Back""");
+                System.out.print(">>>");
+                ans = scanner.nextInt();
+                delay(800);
+                if (ans == 1) {
+                    if (weapon.price <= player.coins) {
+                        player.coins -= weapon.price;
+                        //weapon cost coins removed from player account
+                        player.playerWeaponInventory.add(weapon);
+                        //weapon added to inventory
+                        shop.weaponInventory.remove(weapon);
+                        //weapon removed from inventory
+                        System.out.println("You have purchased: " + weapon.name + "\n-" + weapon.price + " coins");
+                        autoEquipWeapon();
+                        //if player does not have weapon equipped after purchase the next weapon purchased is automatically equiped
+                    } else {
+                        System.out.println("Insufficient funds.");
+                    }
+                } else {
+                    //2 pressed continues while loop back to weapon checkout choice
+                }
+            } else if (ans == count) {
+                inBuyWeapon = false;
+            } else {
+                System.out.println("Invalid Input.");
+            }
+        }
+    }
+
+    public void buyPotion() {
+        boolean inBuyPotion = true;
+        while (inBuyPotion) {
+            int count = 0;
+            textBox("Which potion would you like to purchase?");
+            for (Potion potion : shop.potionInventory) {
+                count++;
+                System.out.println(count + ". " + potion.name);
+            }
+            count++;
+            System.out.print(count + ". <--Back" + "=".repeat(60) + "\n>>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            if (ans >= 0 && ans <= shop.potionInventory.size()) {
+                Potion potion = shop.potionInventory.get(ans - 1);
+                if (potion.price <= player.coins) {
+                    player.coins -= potion.price;
+                    // potion price coins deducted from player account
+                    player.playerPotionInventory.add(potion);
+                    //potion added to player inventory
+                    shop.potionInventory.remove(potion);
+                    //potion removed from the shops inventory
+                    System.out.println("You have purchased: " + potion.name + "\n-" + potion.price + " coins");
+                } else {
+                    System.out.println("You have insufficient funds.");
+                }
+            } else if (ans == count) {
+                inBuyPotion = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void sellWeapon() {
+        boolean inSellWeapon = true;
+        while (inSellWeapon) {
+            if (!player.playerWeaponInventory.isEmpty()) {
+                int count = 0;
+                System.out.println("Which weapon would you like to sell?\n" + "=".repeat(60));
+                for (Weapon weapon : player.playerWeaponInventory) {
+                    count++;
+                    System.out.println(count + ". " + weapon.name);
+                }
+                count++;
+                System.out.print("\n" + count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                Weapon weapon = player.playerWeaponInventory.get(ans - 1);
+                if (ans <= player.playerWeaponInventory.size() && ans >= 0) {
+                    player.coins += weapon.price;
+                    // player gain weapon price amount of coins
+                    player.playerWeaponInventory.remove(weapon);
+                    //weapon removed from player inventory
+                    System.out.println(weapon.name + " was sold");
+                } else if (ans == count) {
+                    inSellWeapon = false;
+                } else {
+                    System.out.println("Invalid input.");
+                }
+            } else {
+                System.out.println("You currently have nothing to sell.");
+                inSellWeapon = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void sellPotion() {
+        boolean inSellPotion = true;
+        while (inSellPotion) {
+            if (!player.playerPotionInventory.isEmpty()) {
+                int count = 0;
+                System.out.println("Which potion would you like to sell?\n" + "=".repeat(60));
+                for (Potion potion : player.playerPotionInventory) {
+                    count++;
+                    System.out.println(count + ". " + potion.name);
+                }
+                count++;
+                System.out.print("\n" + count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                Potion potion = player.playerPotionInventory.get(ans - 1);
+                if (ans <= player.playerPotionInventory.size() && ans >= 0) {
+                    player.coins += potion.price;
+                    //player gain potion price number of coins
+                    player.playerPotionInventory.remove(potion);
+                    //potion removed from player inventory
+                    System.out.println(potion.name + " was sold");
+                } else if (ans == count) {
+                    inSellPotion = false;
+                } else {
+                    System.out.println("Invalid input.");
+                }
+            } else {
+                System.out.println("You currently have nothing to sell.");
+                inSellPotion = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void autoEquipWeapon() {
+        if (player.currentWeapon == null) {
+            player.currentWeapon = player.playerWeaponInventory.get(0);
+            weaponSetStats();
+            player.playerWeaponInventory.remove(0);
+            System.out.println(player.currentWeapon.name + " automatically equiped.");
+        }
+    }
+
+    //-------------------------------------------DUNGEON OPTIONS----------------------------------------------------
+    public void dungeon() {
+        boolean inDungeon = true;
+        dungeonChecker();
+        while (inDungeon) {
+            textBox("""
+                    1. Explore Floor 
+                    2. Move to previous Floor 
+                    3. Move to next floor 
+                    4. Display Stats 
+                    5. Check Inventory 
+                    6. Check Beastiary 
+                    7. Leave Dungeon""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            switch (ans) {
+                case 1 -> {
+                    exploreFloor();
+                }
+                case 2 -> {
+                    moveToNextFloor();
+                }
+                case 3 -> {
+                    moveToPreviousFloor();
+                }
+                case 4 -> {
+                    displayPlayerStats();
+                }
+                case 5 -> {
+                    playerInventory();
+                }
+                case 6 -> {
+                    beastiary();
+                }
+                case 7 -> {
+                    inDungeon = false;
+                    System.out.println("Leaving Dungeon...");
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+            delay(800);
+        }
+    }
+
+    public void exploreFloor() {
+        //every explore floor you could either find stairs to next floor, find monster, or come across loot with the chance of that being a mimic
+        System.out.println("You are currently on floor " + dungeon.currentFloor + ".");
+        double rng = Math.random();
+        if (rng < 0.10 + Math.min(0.9, luckBonus(player.currentLuck))) {
+            //finding loot
+            findingLoot();
+        } else if (rng < 0.25 && dungeon.currentFloor != dungeon.floors && !player.canMoveToNextFloor) {
+            //25% chance of finding stairs in every room you enter
+            findingNextFloorStairs();
+        } else if (rng < 0.30 || dungeon.pity == 3) {
+            //30% chance of encountering an enemy
+            inEnemyEncounter = true;
+            enemyEncounter();
+            dungeon.pity = 0;
+            //pity reset
+        } else {
+            //Nothing happens
+            System.out.println("The room you entered is empty.");
+            dungeon.pity++;
+            //increases pity by one increasing the chances of finding something next time
+        }
+    }
+
+    public void enemyEncounter() {
+        createEnemy();
+        System.out.println("You have encountered an enemy.");
+        updateBeastiary(new BeastLog(enemy));
+        while (inEnemyEncounter) {
+            //shaboing
+            textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + " ".repeat(10) + enemy.name + ": " + "[" + "=".repeat(enemy.hp) + " ".repeat(20 - enemy.hp) + "]" + "\nLevel: " + player.currentLevel + " ".repeat(19) + "Level: " + enemy.lvl);
+            System.out.println("""
+                               1. Attack
+                               2. Use Potion
+                               3. Escape
+                               4. Display Stats
+                               5. Check Beastiary
+                               """ + "=".repeat(60));
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            switch (ans) {
+                case 1 -> {
+                    playerAttack();
+                    enemyAttack();
+                }
+                case 2 -> {
+                    int checker = player.playerPotionInventory.size();
+                    playerPotionInventory();
+                    //if player actually proceeds to use potion then enemy has a chance to attack
+                    if (checker != player.playerPotionInventory.size()) {
+                        enemyAttack();
+                    }
+                }
+                case 3 -> {
+                    escapeEnemy();
+                }
+                case 4 -> {
+                    displayPlayerStats();
+                }
+                case 5 -> {
+                    beastiary();
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+            delay(800);
+        }
+    }
+
+    public double defenseMultiplier(double def) {
+        double reduction = Math.log(def + 1) * 0.08;
+        return Math.max(0.2, 1 - reduction);
+    }
+
+    public void manageWeaponDurability() {
+        if (Math.random() < 0.4 - Math.min(0.4, luckBonus(player.currentLuck))) {
+            player.currentWeapon.durability--;
+            System.out.println("-1 Durability");
+        }
+    }
+
+    public void playerAttack() {
+        double DMG = player.totalPhysicalDamage() + player.totalMagicalDamage() - defenseMultiplier(enemy.currentDefense);
+        if (!playerMiss()) {
+            enemy.hp -= DMG;
+            System.out.println("You have attacked the enemy. -" + Math.ceil(DMG) + "hp");
+            //should the enemy die after attack
+            if (enemy.hp <= 0) {
+                enemyDrops();
+                //handling enemy drop rates
+                levelUp();
+                //level up req
+                inEnemyEncounter = false;
+                player.canEscape = true;
+                //setup for next escape attempt for next enemy
+                System.out.println("You have successfully defeated the enemy.");
+            }
+            manageWeaponDurability();
+            //base 40% chance of losing 1 durability
+        } else {
+            System.out.println("You have missed your attack.");
+        }
+        delay(800);
+    }
+
+    public void enemyAttack() {
+        double DMG = enemy.currentPhysicalAttack + enemy.currentMagicalAttack - defenseMultiplier(player.currentDefense);
+        if (!enemyMiss()) {
+            player.hp -= DMG;
+            System.out.println("Enemy has attacked you. -" + DMG + "hp");
+            //should the player die after enemy attack
+            playerHealthChecker();
+        } else {
+            System.out.println("Enemy has missed its attack.");
+        }
+    }
+
+    public void escapeEnemy() {
+        if (player.canEscape) {
+            if (Math.random() < 0.2 + Math.min(0.8, luckBonus(player.currentLuck))) {
+                inEnemyEncounter = false;
+                System.out.println("You have successfully escaped.");
+            } else {
+                System.out.println("You have failed trying to escape.");
+                enemyAttack();
+                player.canEscape = false;
+            }
+        } else {
+            System.out.println("Player can no longer attempt escaping.");
+        }
+    }
+
+    public void displayPlayerStats() {
+        textBox(player.name + ": " + "[" + "=".repeat(player.hp) + " ".repeat(10 - player.hp) + "]" + "\nLevel: " + player.currentLevel + "\nTokens: " + player.tokens + "\nRole: " + player.role.type + "\n" + "-".repeat(60) + "\nVIT: " + player.VIT + "\nSTR: " + player.STR + "\nINT: " + player.INT + "\nLUC: " + player.LUC + "\n" + "-".repeat(60) + "\nCurrent Weapon: " + player.currentWeapon.name);
+    }
+
+    public void findingNextFloorStairs() {
+        if (Math.random() < 0.20 + Math.min(0.8, luckBonus(player.currentLuck))) {
+            boolean inFindingNextFloorStairs = true;
+            while (inFindingNextFloorStairs) {
+                System.out.println("You have found the stairs to the next floor. Would you like to move on? (y/n)");
+                String ans = scanner.next();
+                delay(800);
+                switch (ans) {
+                    case "y" -> {
+                        System.out.println("Moving to the next floor.");
+                        player.canMoveToPreviousFloor = true;
+                        inFindingNextFloorStairs = false;
+                    }
+                    case "n" -> {
+                        System.out.println("Staying on current floor.");
+                        player.canMoveToNextFloor = true;
+                        inFindingNextFloorStairs = false;
+                    }
+                    default -> {
+                        System.out.println("Invalid Input.");
+                    }
+                }
+            }
+            delay(800);
+        }
+    }
+
+    public void findingLoot() {
+        boolean inFindingLoot = true;
+        while (inFindingLoot) {
+            System.out.println("You have found a loot chest. Would you like to open it? (y/n)");
+            String ans = scanner.next();
+            delay(800);
+            switch (ans) {
+                case "y" -> {
+                    openLootBox();
+                    inFindingLoot = false;
+                }
+                case "n" -> {
+                    System.out.println("You have chosen to not open this loot chest. ");
+                    inFindingLoot = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public void openLootBox() {
+        if (Math.random() < 0.5 + Math.min(0.5, luckBonus(player.currentLuck))) {
+            System.out.println("You have found loot.");
+            //work on exact drops later.
+        } else {
+            player.currentHealth--;
+            playerHealthChecker();
+            System.out.println("You have encountered a mimic.");
+        }
+    }
+
+    public void playerHealthChecker() {
+        if (player.hp <= 0) {
+            System.out.println("You have died.");
+            System.exit(0); //for now
+        }
+    }
+
+    public void updateBeastiary(BeastLog beastLog) {
+        if (!player.beastiary.contains(beastLog)) {
+            player.beastiary.add(beastLog);
+            System.out.println("New Beast Log Made.");
+            delay(800);
+        }
+    }
+
+    public void moveToNextFloor() {
+        if (player.canMoveToNextFloor && dungeon.currentFloor != dungeon.floors) {
+            dungeon.currentFloor++;
+            System.out.println("Moving to next floor...");
+        } else {
+            System.out.println("Unable to move to next floor...");
+        }
+        delay(800);
+    }
+
+    public void moveToPreviousFloor() {
+        if (player.canMoveToPreviousFloor && dungeon.currentFloor != 1) {
+            dungeon.currentFloor--;
+            System.out.println("Moving to previous floor...");
+        } else {
+            System.out.println("Unable to move to previous floor...");
+        }
+    }
+
+    public void dungeonChecker() {
+        boolean inDungeonChecker = true;
+        while (inDungeonChecker) {
+            if (dungeon != null) {
+                System.out.println("Would you like to carry on from last time? (y/n)");
+                String ans = scanner.next();
+                delay(800);
+                switch (ans) {
+                    case "y" -> {
+                        System.out.println("Continuing from last time.");
+                        inDungeonChecker = false;
+                    }
+                    case "n" -> {
+                        createDungeon();
+                        inDungeonChecker = false;
+                    }
+                    default -> System.out.println("Invalid Input.");
+                }
+            } else {
+                createDungeon();
+                inDungeonChecker = false;
+            }
+        }
+    }
+
+    public void createDungeon() {
+        dungeon = new Dungeon();
+        System.out.println("New dungeon created.");
+    }
+
+    public double luckBonus(double luck) {
+        return Math.log(luck + 1) * 0.11;
+    }
+
+    public boolean playerMiss() {
+        return Math.random() < 0.2 - Math.min(0.2, luckBonus(player.currentLuck));
+    }
+
+    public boolean enemyMiss() {
+        return Math.random() < 0.2 - Math.min(0.2, luckBonus(enemy.currentLuck));
+    }
+
+    //-------------------------------------------PLAYER OPTIONS------------------------------------------------------
+    public void playerOptions() {
+        boolean inPlayerOptions = true;
+        while (inPlayerOptions) {
+            System.out.println("What would you like to do?");
+            textBox("""
+                    1. Check Player Inventory
+                    2. Display Stats
+                    3. Use Tokens
+                    4. Check Beastiary
+                    5. <--Back""");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    playerInventory();
+                }
+                case 2 -> {
+                    displayPlayerStats();
+                }
+                case 3 -> {
+                    allocateTokens();
+                }
+                case 4 -> {
+                    beastiary();
+                }
+                case 5 -> {
+                    inPlayerOptions = false;
+                }
+                default -> {
+                    System.out.println("Inavlid Input.");
+                }
+            }
+        }
+    }
+
+    public void playerInventory() {
+        boolean inPlayerInventory = true;
+        while (inPlayerInventory) {
+            System.out.println("What would you like to checkout?");
+            textBox("""
+                    1. Weapons
+                    2. Potions
+                    3. <--Back""");
+            System.out.print(">>>");
+            scanner.nextLine();
+            int ans = scanner.nextInt();
+            switch (ans) {
+                case 1 -> {
+                    playerWeaponInventory();
+                }
+                case 2 -> {
+                    playerPotionInventory();
+                }
+                case 3 -> {
+                    inPlayerInventory = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public void playerWeaponInventory() {
+        boolean inPlayerWeaponInventory = true;
+        while (inPlayerWeaponInventory) {
+            if (!player.playerWeaponInventory.isEmpty()) {
+                System.out.println("What weapon would you like to checkout");
+                int count = 0;
+                System.out.print("=".repeat(60));
+                for (Weapon weapon : player.playerWeaponInventory) {
+                    count++;
+                    System.out.println(count + ". " + weapon.name);
+                }
+                count++;
+                System.out.print(count + ". <--Back\n" + "=".repeat(60) + ">>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                if (ans <= player.playerWeaponInventory.size() && ans >= 0) {
+                    Weapon weapon = player.playerWeaponInventory.get(ans - 1);
+                    showWeaponStats(weapon);
+                    delay(800);
+                    boolean inWeaponOption = true;
+                    while (inWeaponOption) {
+                        System.out.println("What would you like to do?");
+                        textBox("""
+                            1. Equip Weapon
+                            2. <--Back""");
+                        System.out.print(">>>");
+                        ans = scanner.nextInt();
+                        delay(800);
+                        if (ans == 1) {
+                            player.playerWeaponInventory.remove(weapon);
+                            //weapon removed from inventory.
+                            player.playerWeaponInventory.add(player.currentWeapon);
+                            //current weapon added to inventory
+                            player.currentWeapon = weapon;
+                            //player equipped chose weapon
+                            inWeaponOption = false;
+                            weaponSetStats();
+                        } else if (ans == 2) {
+                            inWeaponOption = false;
+                        }
+                    }
+                } else if (ans == count) {
+                    inPlayerWeaponInventory = false;
+                } else {
+                    System.out.println("Invalid Input.");
+                }
+            } else {
+                textBox("No weapons found.");
+                inPlayerWeaponInventory = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void playerPotionInventory() {
+        boolean inPlayerPotionInventory = true;
+        while (inPlayerPotionInventory) {
+            if (!player.playerPotionInventory.isEmpty()) {
+                System.out.println("What potion would you like to checkout");
+                int count = 0;
+                System.out.print("=".repeat(60));
+                for (Potion potion : player.playerPotionInventory) {
+                    count++;
+                    System.out.print("\n" + count + ". " + potion.name);
+                }
+                count++;
+                System.out.println(count + ". <--Back\n" + "=".repeat(60));
+                System.out.print(">>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                if (ans <= player.playerPotionInventory.size() && ans >= 0) {
+                    Potion potion = player.playerPotionInventory.get(ans - 1);
+                    showPotionStats(potion);
+                } else if (ans == count) {
+                    inPlayerPotionInventory = false;
+                } else {
+                    System.out.println("Invalid Input");
+                }
+            } else {
+                System.out.println("=".repeat(60) + "\nNo potions found.");
+                inPlayerPotionInventory = false;
+            }
+            delay(800);
+        }
+    }
+
+    public void allocateTokens() {
+        boolean inAllocateTokens = true;
+        if (player.tokens <= 0) {
+            System.out.println("You have insufficient tokens to level up your attributes.");
+            return;
+        }
+        while (inAllocateTokens && player.tokens > 0) {
+            System.out.println("Which stat would you like to upgrade.\n" + "=".repeat(60) + "\nTokens: " + player.tokens);
+            delay(800);
+            textBox("""
+                    1. VIT
+                    2. STR
+                    3. INT
+                    4. LUC
+                    5. <--Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    player.currentHealth += setGainDecrease(player.VIT);
+                    System.out.println("Player vitality has increased.");
+                    player.tokens--;
+                }
+                case 2 -> {
+                    switch (player.role.type.toLowerCase()) {
+                        case "mage" -> physicalMultiplier = 0.25;
+                        case "gish" -> physicalMultiplier = 0.50;
+                        case "knight" -> physicalMultiplier = 0.75;
+                        case "barbarian" -> physicalMultiplier = 1.0;
+                    }
+                    player.currentPhysicalAttack += (setGainDecrease(player.STR) * physicalMultiplier);
+                    System.out.println("Player attack has increased.");
+                    player.tokens--;
+                }
+                case 3 -> {
+                    switch (player.role.type.toLowerCase()) {
+                        case "mage" -> magicMultiplier = 1.0;
+                        case "gish" -> magicMultiplier = 0.75;
+                        case "knight" -> magicMultiplier = 0.50;
+                        case "barbarian" -> magicMultiplier = 0.25;
+                    }
+                    player.currentPhysicalAttack += (setGainDecrease(player.INT) * magicMultiplier);
+                    System.out.println("Player intelligence has increased.");
+                    player.tokens--;
+                }
+                case 4 -> {
+                    player.currentLuck += setGainDecrease(player.LUC);
+                    System.out.println("Player luck has increased.");
+                    player.tokens--;
+                }
+                case 5 -> {
+                    inAllocateTokens = false;
+                }
+            }
+        }
+    }
+
+    public void beastiary() {
+        boolean inBeastiary = true;
+        while (inBeastiary) {
+            if (!player.beastiary.isEmpty()) {
+                System.out.println("Which enemy would you like to checkout.\n" + "=".repeat(60));
+                int count = 0;
+                for (BeastLog beastLog : player.beastiary) {
+                    count++;
+                    System.out.println(count + ". " + beastLog.enemy.name);
+                }
+                count++;
+                System.out.print(count + ". <--Back\n" + "=".repeat(60) + "\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                if (ans >= 0 && ans <= player.beastiary.size()) {
+                    Enemy beast = player.beastiary.get(ans - 1).enemy;
+                    textBox("name: " + beast.name + "\ndescription: " + beast.description);
+                } else if (ans == count) {
+                    inBeastiary = false;
+                } else {
+                    System.out.println("Invalid Input.");
+                }
+            } else {
+                System.out.println("Beastiary is currently empty.");
+                inBeastiary = false;
+            }
+        }
+    }
+
+    //---------------------------------------GAME SAVE METHODS---------------------------------------------
+    public void leaveGame() {
+        while (inLeaveGame) {
+            System.out.print("Would you like to save the game? (y/n)\n>>>");
+            String ans = scanner.next();
+            delay(800);
+            switch (ans) {
+                case "y" -> {
+                    saveGame();
+                }
+                case "n" -> {
+                    inLeaveGame = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+        System.out.println("Leaving Game...");
+        System.exit(0);
+    }
+
+    public void saveGame() {
+        boolean inSaveGame = true;
+        while (inSaveGame) {
+            System.out.println("""
+                                Would you like to:
+                                1. Save into existing save file
+                                2. Create new save file
+                                3. Back""");
+            System.out.print(">>>");
+            int ans = scanner.nextInt();
+            delay(800);
+            switch (ans) {
+                case 1 -> {
+                    inSaveGame = !saveExistingGameFile();
+                }
+                case 2 -> {
+                    inSaveGame = !saveNewGameFile();
+                }
+                case 3 -> {
+                    inSaveGame = false;
+                }
+                default -> {
+                    System.out.println("Invalid Input.");
+                }
+            }
+        }
+    }
+
+    public boolean saveExistingGameFile() {
+        boolean inSaveExistingGameFile = true;
+        while (inSaveExistingGameFile) {
+            if (gameSaveFiles != null) {
+                System.out.println("Which file would you like to save into: \n" + "=".repeat(60));
+                int count = 0;
+                System.out.println("=".repeat(60));
+                for (File file : gameSaveFiles) {
+                    if (file.isFile() && file.getName().endsWith(".bin")) {
+                        count++;
+                        System.out.println(count + ". " + file.getName());
+                    }
+                }
+                count++;
+                System.out.print(count + ". <--Back\n>>>");
+                int ans = scanner.nextInt();
+                delay(800);
+                if (ans >= 0 && ans <= gameSaveFiles.length) {
+                    //creating save data template for saving into game files
+                    saveData.player = player;
+                    saveData.enemies = enemies;
+                    saveData.shop = shop;
+                    File file = gameSaveFiles[ans - 1];
+                    try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(file.getName()))) {
+                        os.writeObject(saveData);
+                        System.out.println("Data saved to " + file.getName().substring(0, file.getName().length() - 4));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.out.println("Existing game save issue.");
+                        System.exit(0);
+                    }
+                } else if (ans == count) {
+                    inSaveExistingGameFile = false;
+                    return false;
+                }
+            } else {
+                System.out.println("You have no existing save files.");
+                inSaveExistingGameFile = false;
+                return false; //save didnt go through
+            }
+        }
+        inLeaveGame = false;
+        return true; //if all saving code went through without a problem
+    }
+
+    public boolean gameFileNameChecker(String fileName) {
+        boolean found = false;
+        for (File file : gameSaveFiles) {
+            if (file.getName().equals(fileName)) {
+                found = true;
+                break; // Exit the loop as soon as a match is found for efficiency
+            }
+        }
+        return found;
+    }
+
+    public boolean saveNewGameFile() {
+        boolean inSaveNewGameFile = true;
+        while (inSaveNewGameFile) {
+            System.out.print("Type in new file save name.\n>>>");
+            String fileName = scanner.next();
+            fileName = gameSaveFolderPath + "\\" + fileName;
+            delay(800);
+            if (gameFileNameChecker(fileName)) {
+                continue;
+            }
+            if (!fileName.endsWith(".bin")) {
+                fileName += ".bin";
+            }
+            saveData.player = player;
+            saveData.enemies = enemies;
+            saveData.shop = shop;
+            try (ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(fileName))) {
+                os.writeObject(saveData);
+                inSaveNewGameFile = false;
+                System.out.println("successfully saved.");
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("New Game save issue");
+                System.exit(0);
+            }
+        }
+        inLeaveGame = false;
+        return true;
+    }
+
+    public Player loadPlayer(String filePath) {
+        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream(filePath))) {
+            SaveData data = (SaveData) is.readObject();
+            return data.player;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("load player error");
+            return null;
+        }
+    }
+
+    public Shop loadShop(String filePath) {
+        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream(filePath))) {
+            SaveData data = (SaveData) is.readObject();
+            return data.shop;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("load shop error");
+            return null;
+        }
+    }
+
+    public Enemies loadEnemies(String filePath) {
+        try (ObjectInputStream is = new ObjectInputStream(new FileInputStream(filePath))) {
+            SaveData data = (SaveData) is.readObject();
+            return data.enemies;
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("load enemies error");
+            return null;
+        }
+    }
+
+    //-----------------------------------------------------------------------------------------------------
+    public void usePotion(int ans) {
+        Potion potion = player.playerPotionInventory.get(ans - 1);
+        System.out.println("You have seleted " + potion.name);
+        delay(800);
+        player.playerPotionInventory.remove(potion);
+        System.out.println("Potion removed from player inventory.");
+        delay(800);
+    }
+
+    public void enemyDrops() {
+        /*enemy has a chance to drop 3 items
+        1 item is 100% guaranteed
+        2 drops down to 25% + players luck*/
+        double probability = Math.random();
+        System.out.println("The enemy has dropped: ");
+        int coinDrop = (int) Math.floor(Math.random() * 10 + 1);
+        player.coins += coinDrop;
+        System.out.println("- " + coinDrop + " coins");
+        if (probability < 0.15 + (0.1 * player.currentLuck)) {
+            Weapon weapon = new Weapon("Random tool", 10, 1, 1);
+            player.playerWeaponInventory.add(weapon);
+            System.out.println("- " + weapon.name);
+        }
+        if (probability < 0.15 + (0.1 * player.currentLuck)) {
+            Potion potion = new Potion("Random elixir", 1, 5, "atkBuff");
+            player.playerPotionInventory.add(potion);
+            System.out.println("- " + potion.name);
+        }
+        System.out.println("=".repeat(60));
+        delay(800);
+        int xp = (int) (Math.floor(Math.random() * 10 + 1)) * 10;
+        player.expGauge += xp;
+        System.out.println("exp gained: " + xp);
+        delay(800);
+    }
+
+    public void delay(int mill) {
+        try {
+            Thread.sleep(mill);
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+    }
+
+    public boolean encounterEnemy() {
+        return Math.random() > 0.5; //50% chance to encounter an enemy
+    }
+
+    //---------------------------------------PLAYER BASED METHODS----------------------------------------------------------
+    public void createPlayer() {
+        System.out.print("What is your name: ");
+        String name = scanner.next();
+        scanner.nextLine();
+        System.out.println("What is your role: ");
+        textBox("1. Mage \n2. Gish \n3. Knight \n4. Barbarian");
+        System.out.print(">>>");
+        int role = scanner.nextInt();
+        delay(800);
+        switch (role) {
+            case 1 -> {
+                player = new Player(name);
+                player.role = new Role("mage");
+                System.out.println("Mage character created.");
+            }
+            case 2 -> {
+                player = new Player(name);
+                player.role = new Role("gish");
+                System.out.println("Gish character created.");
+            }
+            case 3 -> {
+                player = new Player(name);
+                player.role = new Role("knight");
+                System.out.println("Knight character created.");
+            }
+            case 4 -> {
+                player = new Player(name);
+                player.role = new Role("barbarian");
+                System.out.println("Barbarian character created.");
+            }
+            default -> {
+                System.out.println("Invalid role.");
+            }
+        }
+        delay(800);
+    }
+
+    //directly affected by the players stat level
+    //used to calculate increase in atk, int, vit, and luc after each level up
+    public static double setGainDecrease(int stat) {
+        //could be atk, int, vit or luc
+        //f(x) = a . b ^ x;
+        double maxGain = 50.0; //a
+        double decayFactor = 0.95499258602144; //b
+        return maxGain * Math.pow(decayFactor, stat);
+    }
+
+    public static double statGainIncrease(int stat) {
+        double maxGain = 50.0;
+        double decayFactor = 0.95499258602144;
+        double increment = maxGain * Math.pow(decayFactor, stat);
+        return maxGain - increment;
+    }
+
+    public void displayStatDetails() {
+        textBox("Base Health: " + player.currentHealth + "\nBase Physical Attack: " + player.currentPhysicalAttack + "\nBase Magical Attack: " + player.currentMagicalAttack + "\nCurrent Weapon Physical Attack: " + player.currentWeapon.currentPhysicalAttack + "\nCurrent Weapon Magical Attack: " + player.currentWeapon.currentMagicalAttack + "\n" + "-".repeat(60) + "\nTotal Physical Attack: " + player.totalPhysicalDamage() + "\nTotal Magical Attack: " + player.totalMagicalDamage());
+    }
+
+    public void setStats() {
+        for (int i = 1; i <= player.currentLevel; i++) {
+            player.currentXp += setGainDecrease(i);
+        }
+        for (int i = 1; i <= player.STR; i++) {
+            player.currentPhysicalAttack += setGainDecrease(i);
+        }
+        for (int i = 1; i <= player.INT; i++) {
+            player.currentMagicalAttack += setGainDecrease(i);
+        }
+        for (int i = 1; i <= player.VIT; i++) {
+            player.currentHealth += setGainDecrease(i);
+        }
+        for (int i = 1; i <= player.LUC; i++) {
+            player.currentLuck += setGainDecrease(i);
+        }
+        for (int i = 1; i <= player.DEF; i++) {
+            player.currentDefense += setGainDecrease(i);
+        }
+    }
+
+    public void enemySetStats() {
+        for (int i = 1; i <= enemy.STR; i++) {
+            enemy.currentPhysicalAttack += setGainDecrease(i);
+        }
+        for (int i = 1; i <= enemy.INT; i++) {
+            enemy.currentMagicalAttack += setGainDecrease(i);
+        }
+        for (int i = 1; i <= enemy.VIT; i++) {
+            enemy.maxHealth += setGainDecrease(i);
+        }
+        for (int i = 1; i <= enemy.LUC; i++) {
+            enemy.currentLuck += setGainDecrease(i);
+        }
+        for (int i = 1; i <= enemy.DEF; i++) {
+            enemy.currentDefense += setGainDecrease(i);
+        }
+    }
+
+    public void weaponSetStats() {
+        for (int i = 1; i <= player.currentWeapon.STR; i++) {
+            player.currentWeapon.currentPhysicalAttack += setGainDecrease(i);
+        }
+        for (int i = 1; i <= player.currentWeapon.INT; i++) {
+            player.currentWeapon.currentMagicalAttack += setGainDecrease(i);
+        }
+    }
+
+    //*********************FIX**************************************
+    public void effectApplication(int ans) {
+        Skill skill = player.currentWeapon.skillSlots.get(ans - 1);
+        if (skill.effect != null) {
+            skill.effectTracker = 0;
+            switch (skill.effect) {
+                case "wither" -> {
+                    enemy.currentHealth--;
+                }
+                case "stat buff" -> {
+                    player.currentPhysicalAttack *= 2;
+                }
+                case "healing" -> {
+                    player.currentHealth += 5;
+                }
+                case "stat de-buff" -> {
+                    enemy.currentPhysicalAttack /= 2;
+                }
+            }
+        }
+    }
+
+    public void levelUp() {
+        int curr = 0;
+        for (int i = 1; i <= player.currentLevel + 1; i++) {
+            curr += statGainIncrease(i);
+        }
+        System.out.println(curr);
+        if (curr <= player.currentXp) {
+            player.currentLevel++;
+            System.out.println("You have leveled up.\nNew level: " + player.currentLevel);
+            //token allocation -- player gets between 1 and 5 tokens to use on stats after each level up
+            int tokens = (int) Math.floor(Math.random() * 5 + 1);
+            player.tokens += tokens;
+            System.out.println("You have received " + tokens + " level up token" + (tokens > 1 ? "s." : ".") /*This is purely for grammaticaly correctness*/ );
+        } else {
+            System.out.println((curr - player.currentXp) + " xp left until next level up.");
+        }
+    }
+    
+}
