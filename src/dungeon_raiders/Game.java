@@ -81,7 +81,7 @@ class Game {
     }
 
     public void createEnemies() {
-        enemies = new Enemies();
+        enemies = new Enemies(player.level);
         System.out.println("Enemies List Created.");
     }
 
@@ -127,10 +127,6 @@ class Game {
     public void createEnemy() {
         enemy = enemies.enemies.get((int) Math.floor(Math.random() * enemies.enemies.size()));
         enemySetStats();
-    }
-
-    public void showWeaponStats(Weapon weapon) {
-        textBox("Name: " + weapon.name + "\nDurability: " + weapon.durability + "\nPhysical Damage: " + weapon.currentPhysicalAttack + "\nMagical Damage: " + weapon.currentMagicalAttack + "\nCurrent Price: " + weapon.price);
     }
 
     public void showPotionStats(Potion potion) {
@@ -275,7 +271,7 @@ class Game {
             delay(800);
             if (ans >= 0 && ans <= shop.weaponInventory.size()) {
                 Weapon weapon = shop.weaponInventory.get(ans - 1);
-                showWeaponStats(weapon);
+                weapon.display();
                 System.out.println("""
                                    1. Purchase Weapon
                                    2. <--Back""");
@@ -817,7 +813,7 @@ class Game {
                 delay(800);
                 if (ans <= player.playerWeaponInventory.size() && ans >= 0) {
                     Weapon weapon = player.playerWeaponInventory.get(ans - 1);
-                    showWeaponStats(weapon);
+                    weapon.display();
                     delay(800);
                     boolean inWeaponOption = true;
                     while (inWeaponOption) {

@@ -72,7 +72,7 @@ class Enemy implements Serializable {
                             possess dull, earth-toned or sometimes greenish-grey skin. They have notoriously quick tempers,
                             often resorting to violent tantrums when frustrated.""";
         
-        currentWeapon = new Weapon("Club", 10);
+        currentWeapon = new Weapon("Club", 10, 10);
 
         this.VIT = 2;
         this.STR = 3;

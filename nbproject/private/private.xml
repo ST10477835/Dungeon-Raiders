@@ -3,8 +3,14 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Dungeon_Raiders.java</file>
-            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Weapon.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Enemies.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Skill.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Role.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Player.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Game.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/src/dungeon_raiders/Enemy.java</file>
+            <file>file:/C:/Users/abule/OneDrive/Documents/NetBeansProjects/Dungeon_Raiders/test/dungeon_raiders/PlayerIT.java</file>
         </group>
     </open-files>
 </project-private>

@@ -14,6 +14,8 @@ public class Player implements Serializable{
     ArrayList<Weapon> playerWeaponInventory = new ArrayList<>();
     ArrayList<Potion> playerPotionInventory = new ArrayList<>();
     
+    Weapon currentWeapon = new Weapon("fist",1, 0);
+    
     int coins = 20;
     
     int level;//Level Max = 100
@@ -34,7 +36,7 @@ public class Player implements Serializable{
     
     int STR;
     double strength;
-    double currentStrength;
+    double currentStrength = 200;
     
     int INT;
     double intelligence;
@@ -54,8 +56,8 @@ public class Player implements Serializable{
         this.LUC = role.LUC;
     }
     
-    public void calculation(){
-        
+    public double calculateDamage(int index, Enemy enemy){
+        return (currentStrength+currentWeapon.getDamage(index))/enemy.DEF;
     }
     
     

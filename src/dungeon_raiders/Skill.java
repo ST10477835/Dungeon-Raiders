@@ -40,25 +40,22 @@ public class Skill implements Serializable {
         this.effect =  effect; //additional status effect
     }
 
-    public double damage(double playerBaseDamage, double weaponBaseDamage, String enemyWeakness) {
-        double additionalDamage = enemyWeakness.equals(type) ? 1.5 : 0; //damage multiplier if enemy weakness hit
-        double primaryDamage = playerBaseDamage + weaponBaseDamage;
+    public double skillDamageMultiplier() {
         switch (rating) {
             case "low" -> {
-                primaryDamage *= dmgLow;
+                return dmgLow;
             }
             case "medium" -> {
-                primaryDamage *= dmgMed;
+                return dmgMed;
             }
             case "high" -> {
-                primaryDamage *= dmgHig;
+                return dmgHig;
             }
             default -> {
                 System.out.println("Skill damage issue encountered.");
                 return 0;
             }
         }
-        return primaryDamage + additionalDamage;
     }
 
     public void display() {
