@@ -36,7 +36,7 @@ class Entity implements Cloneable {
     }
 
     public void printHealth() {
-        System.out.print(name + ":[" + "#".repeat((int) health) + "-".repeat(20 - (int) health) + "]");
+        System.out.print(name + ":[" + "#".repeat((int) health) + "-".repeat(20 - (int) health) + "]\n");
     }
 
     public void printStatistics() {
